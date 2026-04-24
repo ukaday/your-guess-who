@@ -1,0 +1,60 @@
+generator client {
+    provider     = "prisma-client"
+    output       = "../src/generated/prisma"
+    moduleFormat = "esm"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+model User {
+    id     String       @id
+    decks  Deck[]
+    games  GamePlayer[]
+}
+
+model Deck {
+    id      String       @id @default(cuid())
+    name    String
+    owner   User         @relation(fields: [ownerId], references: [id])
+    ownerId String
+    cards   Card[]
+    games   Game[]
+}
+
+model Card {
+    id            String       @id @default(cuid())
+    name          String
+    imageKey      String
+    deck          Deck         @relation(fields: [deckId], references: [id])
+    deckId        String
+    secretCardFor GamePlayer[]
+}
+
+model Game {
+    id         String       @id @default(cuid())
+    inviteCode String       @unique
+    status     GameStatus
+    deck       Deck         @relation(fields: [deckId], references: [id])
+    deckId     String
+    players    GamePlayer[]
+    createdAt  DateTime     @default(now())
+}
+
+model GamePlayer {
+    game         Game   @relation(fields: [gameId], references: [id])
+    gameId       String
+    user         User   @relation(fields: [userId], references: [id])
+    userId       String
+    secretCard   Card?  @relation(fields: [secretCardId], references: [id])
+    secretCardId String?
+
+    @@id([gameId, userId])
+}
+
+enum GameStatus {
+    LOBBY
+    ACTIVE
+    FINISHED
+}
