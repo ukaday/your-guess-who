@@ -7,7 +7,7 @@ describe('GET /health', () => {
         const mockPrisma = { $queryRaw: vi.fn().mockResolvedValue([]) };
         const app = createApp(mockPrisma as never, 'http://localhost:5173');
 
-        const response = await request(app).get('/health');
+        const response = await request(app).get('/api/health');
 
         expect(response.status).toBe(200);
         expect(response.body).toEqual({ status: 'ok' });

@@ -263,7 +263,7 @@ Trigger: push to `main`, changes in `infrastructure/**`
 
 Before building features on newly deployed layer, verify end-to-end connectivity:
 
-- **Backend canary**: `GET /health` returns `{ status: "ok" }`
+- **Backend canary**: `GET /api/health` returns `{ status: "ok" }`
 - **Frontend canary**: on load, fetch `/api/health`, display response on screen
 
 Must pass before feature work begins on that layer. See `docs/bootstrap.md` for when to run.

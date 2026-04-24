@@ -12,7 +12,7 @@ export const createApp = (
     app.use(cors({ origin: corsOrigin }));
     app.use(express.json());
 
-    app.get('/health', async (_req, res) => {
+    app.get('/api/health', async (_req, res) => {
         await prisma.$queryRaw`SELECT 1`;
         res.json({ status: 'ok' });
     });
