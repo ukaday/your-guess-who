@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Backend** (`backend/`)
 ```bash
-npm run dev       # nodemon + ts-node (hot reload)
+npm run dev       # tsx watch (hot reload)
 npm run build     # tsc → dist/
 npm start         # node dist/index.js
 ```
@@ -18,6 +18,10 @@ npm run build     # vue-tsc + vite build → dist/
 ```
 
 No test runner configured yet — add vitest (frontend) and jest (backend) when needed.
+
+## Local Dev
+
+DB runs in Docker (`docker-compose.yml` at repo root). Backend and frontend run natively for hot reload.
 
 ## Architecture
 
