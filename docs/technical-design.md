@@ -229,6 +229,8 @@ All resources in single CDK app under `infrastructure/`. Stacks split by concern
 
 ## CI/CD (GitHub Actions)
 
+Requires Phase 4 (Infrastructure) to be deployed first — workflows reference AWS resource IDs added to GitHub Actions secrets from CDK outputs.
+
 Three independent workflows, each triggered by changes to respective package directory.
 
 ### `frontend.yml`
