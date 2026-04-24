@@ -7,7 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Backend** (`backend/`)
 ```bash
 npm run dev       # tsx watch (hot reload)
-npm run build     # tsc → dist/
+npm run build     # prettier → eslint → tsc → vitest run
+npm run format    # prettier --write src
+npm run test      # vitest run
 npm start         # node dist/index.js
 ```
 
