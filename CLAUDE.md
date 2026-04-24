@@ -19,7 +19,7 @@ npm run dev       # vite dev server (localhost:5173)
 npm run build     # vue-tsc + vite build → dist/
 ```
 
-No test runner configured yet — add vitest (frontend) and jest (backend) when needed.
+No test runner configured yet for frontend — add vitest when needed.
 
 ## Local Dev
 
@@ -29,7 +29,7 @@ DB runs in Docker (`docker-compose.yml` at repo root). Backend and frontend run 
 
 Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm packages.
 
-**Backend** — Express + Socket.io on single HTTP server (`backend/src/index.ts`). Socket.io rooms per game (`game:<id>`). JWT from Cognito auth handshake for socket connections. Prisma for DB access. AWS SDK v3 for S3 pre-signed URLs.
+**Backend** — Express + Socket.io on single HTTP server. Entry: `src/server.ts` (port binding, Socket.io) + `src/app.ts` (routes, `createApp(prisma)` factory). Socket.io rooms per game (`game:<id>`). Prisma 7 via `@prisma/adapter-pg`. AWS SDK v3 for S3 pre-signed URLs.
 
 **Frontend** — Vue 3 + Vite + TypeScript. Pinia stores: `authStore`, `deckStore`, `gameStore`. One shared Socket.io client, init on game join, torn down on leave. Card images upload direct to S3 via pre-signed URL (never through app server). Vite proxy `/api` → `http://localhost:3000` for local dev.
 
@@ -45,6 +45,10 @@ Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm package
 | `docs/technical-design.md` | API routes, Prisma schema, Socket.io events, CDK stacks, CI/CD |
 | `docs/program-plan.md` | Phased build plan with canary gates |
 | `docs/bootstrap.md` | One-time manual AWS + GitHub setup steps |
+
+## Collaboration
+
+Act as tutor — explain concepts and guide the user to write the code. Don't implement unless the user is stuck or explicitly asks.
 
 ## Conventions
 

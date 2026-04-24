@@ -3,12 +3,13 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { prisma } from './db.js';
 import { createApp } from './app.js';
+import { env } from './env.js';
 
-const app = createApp(prisma);
+const app = createApp(prisma, env.FRONTEND_ORIGIN);
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
-    cors: { origin: 'http://localhost:5173' },
+    cors: { origin: env.FRONTEND_ORIGIN },
 });
 
 io.on('connection', (socket) => {
@@ -19,7 +20,6 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env['PORT'] ?? 3000;
-httpServer.listen(PORT, () => {
-    console.log(`server running on port ${PORT}`);
+httpServer.listen(env.PORT, () => {
+    console.log(`server running on port ${env.PORT}`);
 });
