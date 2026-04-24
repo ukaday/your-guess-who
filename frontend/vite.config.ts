@@ -1,7 +1,17 @@
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [vue()],
-})
+const requireEnv = (key: string): string => {
+    const value = process.env[key];
+    if (!value) throw new Error(`Missing required environment variable: ${key}`);
+    return value;
+};
+
+export default defineConfig(({ command }) => ({
+    plugins: [vue()],
+    server: command === 'serve' ? {
+        proxy: {
+            '/api': requireEnv('BACKEND_URL'),
+        },
+    } : undefined,
+}));
