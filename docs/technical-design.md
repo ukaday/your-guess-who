@@ -186,7 +186,7 @@ DB migrations (`prisma migrate deploy`) run at container startup.
 
 ## Infrastructure (AWS CDK)
 
-All resources in single CDK app under `infrastructure/`. Stacks split by concern for independent deploy/update.
+All resources in single CDK app under `infrastructure/`. Stacks split by concern for independent deploy/update. Entry point: `bin/app.ts`. Stack definitions: `lib/`. Runs via `tsx` (same pattern as backend).
 
 ### Stacks
 
@@ -204,7 +204,7 @@ All resources in single CDK app under `infrastructure/`. Stacks split by concern
 - Pulls image from ECR on deploy
 - Env vars injected at deploy: `DATABASE_URL`, `S3_BUCKET`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`
 - Auto-scaling: min 1, max 5 instances
-- Health check: `GET /health`
+- Health check: `GET /api/health`
 
 ### RDS
 

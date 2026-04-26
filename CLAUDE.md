@@ -21,6 +21,13 @@ npm run build     # vue-tsc + vite build → dist/
 
 No test runner configured yet for frontend — add vitest when needed.
 
+**Infrastructure** (`infrastructure/`)
+```bash
+npx cdk diff      # show pending changes
+npx cdk deploy    # deploy all stacks
+npx cdk destroy   # tear down stacks
+```
+
 ## Local Dev
 
 DB runs in Docker (`docker-compose.yml` at repo root). Backend and frontend run natively for hot reload.
@@ -33,7 +40,7 @@ Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm package
 
 **Frontend** — Vue 3 + Vite + TypeScript. Pinia stores: `authStore`, `deckStore`, `gameStore`. One shared Socket.io client, init on game join, torn down on leave. Card images upload direct to S3 via pre-signed URL (never through app server). Vite proxy `/api` → `http://localhost:3000` for local dev.
 
-**Infrastructure** — AWS CDK (`infrastructure/`). Six stacks: Network, Database (RDS PostgreSQL), Storage (S3 images), Auth (Cognito), Backend (App Runner + ECR), Frontend (S3 + CloudFront). Deployed via GitHub Actions on push to `main`.
+**Infrastructure** — AWS CDK (`infrastructure/`). Entry: `bin/app.ts`. Stack definitions: `lib/`. Six stacks: Network, Database (RDS PostgreSQL), Storage (S3 images), Auth (Cognito), Backend (App Runner + ECR), Frontend (S3 + CloudFront). Deployed via GitHub Actions on push to `main`.
 
 **Auth** — Cognito issues JWTs. Username + password only — no email or personal data. Backend validates via Cognito JWKS per request. Local DB `users` table mirrors Cognito sub as PK.
 
@@ -54,6 +61,11 @@ Act as tutor — explain concepts and guide the user to write the code. Don't im
 
 - 4-space indentation
 - One statement per line
-- No placeholder files, no dead code
 - New functions at bottom of file
 - Configurable constants (max card name length, image pixel size) live in backend config — not hardcoded in logic
+
+**Principles**
+- **SLAP** — single level of abstraction per function; constructors/handlers delegate to private methods
+- **SOLID** — single responsibility, open/closed, dependency injection over hardcoded dependencies
+- **DRY** — no duplicated logic; shared values in config or env, not inlined
+- **YAGNI** — no placeholder files, no dead code, no stubs, no features not yet needed
