@@ -45,6 +45,41 @@ Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm package
 
 **Auth** — Cognito issues JWTs. Username + password only — no email or personal data. Backend validates via Cognito JWKS per request. Local DB `users` table mirrors Cognito sub as PK.
 
+## File Structure
+
+```
+your-guess-who/
+├── docker-compose.yml
+├── context.md                        # gitignored — local AWS resource IDs
+├── CLAUDE.md
+├── docs/
+│   ├── business-requirements.md
+│   ├── technical-design.md
+│   ├── program-plan.md
+│   └── bootstrap-instructions.md
+├── backend/
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── migrations/
+│   ├── src/
+│   │   ├── server.ts                 # port binding, Socket.io init
+│   │   ├── app.ts                    # createApp factory, route mounting
+│   │   ├── lib/                      # singletons (env, db, cognito)
+│   │   ├── routes/                   # thin Express handlers
+│   │   ├── services/                 # business logic, injected deps
+│   │   └── utils/                    # shared helpers
+│   └── tests/
+│       ├── services/
+│       └── utils/
+├── frontend/
+│   └── src/
+│       ├── main.ts
+│       └── App.vue
+└── infrastructure/
+    ├── bin/app.ts                    # CDK entry point
+    └── lib/                          # stack definitions
+```
+
 ## Docs
 
 | File | Contents |
