@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+@context.md
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Commands
@@ -17,9 +19,8 @@ npm start         # node dist/index.js
 ```bash
 npm run dev       # vite dev server (localhost:5173)
 npm run build     # vue-tsc + vite build → dist/
+npm run test      # vitest run --coverage
 ```
-
-No test runner configured yet for frontend — add vitest when needed.
 
 **Infrastructure** (`infrastructure/`)
 ```bash
@@ -36,7 +37,7 @@ DB runs in Docker (`docker-compose.yml` at repo root). Backend and frontend run 
 
 Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm packages.
 
-**Backend** — Express + Socket.io on single HTTP server. Entry: `src/server.ts` (port binding, Socket.io) + `src/app.ts` (routes, `createApp(prisma)` factory). Socket.io rooms per game (`game:<id>`). Prisma 7 via `@prisma/adapter-pg`. AWS SDK v3 for S3 pre-signed URLs.
+**Backend** — Express + Socket.io on single HTTP server. Entry: `src/server.ts` (port binding, Socket.io) + `src/app.ts` (`createApp(prisma, cognito, corsOrigin)` factory). Layered: `src/lib/` (env, db, cognito singletons), `src/routes/` (thin handlers via `handleError`), `src/services/` (business logic, injected deps), `src/utils/` (shared helpers). Socket.io rooms per game (`game:<id>`). Prisma 7 via `@prisma/adapter-pg`. AWS SDK v3 for Cognito auth + S3 pre-signed URLs.
 
 **Frontend** — Vue 3 + Vite + TypeScript. Pinia stores: `authStore`, `deckStore`, `gameStore`. One shared Socket.io client, init on game join, torn down on leave. Card images upload direct to S3 via pre-signed URL (never through app server). Vite proxy `/api` → `http://localhost:3000` for local dev.
 

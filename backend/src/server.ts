@@ -1,11 +1,12 @@
 import 'dotenv/config';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { prisma } from './db.js';
+import { prisma } from './lib/db.js';
+import { cognito } from './lib/cognito.js';
 import { createApp } from './app.js';
-import { env } from './env.js';
+import { env } from './lib/env.js';
 
-const app = createApp(prisma, env.FRONTEND_ORIGIN);
+const app = createApp(prisma, cognito, env.FRONTEND_ORIGIN);
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {

@@ -72,7 +72,7 @@ All routes prefixed `/api`.
 | Method | Path               | Description                        |
 |--------|--------------------|------------------------------------|
 | POST   | `/auth/register`   | Create Cognito user + DB user row  |
-| POST   | `/auth/login`      | Authenticate, return JWT           |
+| POST   | `/auth/login`      | Authenticate, return `{ token }` (Cognito AccessToken) |
 
 #### Decks
 

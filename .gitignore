@@ -7,3 +7,4 @@ dist/
 cdk.out/
 cdk.context.json
 .claude
+context.md
