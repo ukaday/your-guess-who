@@ -10,15 +10,16 @@
         "test": "vitest run --coverage"
     },
     "dependencies": {
+        "@aws-sdk/client-cognito-identity-provider": "^3.0.0",
         "@prisma/adapter-pg": "^7.0.0",
         "@prisma/client": "^7.0.0",
+        "aws-jwt-verify": "^5.1.1",
         "cors": "^2.0.0",
         "dotenv": "^17.0.0",
         "express": "^5.0.0",
         "pg": "^8.0.0",
         "prisma": "^7.0.0",
-        "socket.io": "^4.0.0",
-        "@aws-sdk/client-cognito-identity-provider": "^3.0.0"
+        "socket.io": "^4.0.0"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
