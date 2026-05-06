@@ -52,3 +52,11 @@ export const deleteDeck = async (
 
     return count > 0 ? true : null;
 };
+
+export const createDeckService = (prisma: PrismaClient) => ({
+    listDecks: (userId: string) => listDecks(prisma, userId),
+    createDeck: (userId: string, name: string) => createDeck(prisma, userId, name),
+    getDeck: (userId: string, deckId: string) => getDeck(prisma, userId, deckId),
+    renameDeck: (userId: string, deckId: string, name: string) => renameDeck(prisma, userId, deckId, name),
+    deleteDeck: (userId: string, deckId: string) => deleteDeck(prisma, userId, deckId),
+});

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
     createDeck,
+    createDeckService,
     deleteDeck,
     getDeck,
     listDecks,
@@ -219,5 +220,55 @@ describe('deleteDeck', () => {
         await expect(
             deleteDeck(prisma as never, USER_ID, DECK_ID),
         ).rejects.toThrow('db error');
+    });
+});
+
+describe('createDeckService', () => {
+    it('listDecks delegates to listDecks fn', async () => {
+        const prisma = makePrisma();
+        const decks = [{ id: DECK_ID, name: 'My Deck', ownerId: USER_ID }];
+        prisma.deck.findMany.mockResolvedValueOnce(decks);
+
+        const result = await createDeckService(prisma as never).listDecks(USER_ID);
+
+        expect(result).toBe(decks);
+    });
+
+    it('createDeck delegates to createDeck fn', async () => {
+        const prisma = makePrisma();
+        const deck = { id: DECK_ID, name: 'New Deck', ownerId: USER_ID };
+        prisma.deck.create.mockResolvedValueOnce(deck);
+
+        const result = await createDeckService(prisma as never).createDeck(USER_ID, 'New Deck');
+
+        expect(result).toBe(deck);
+    });
+
+    it('getDeck delegates to getDeck fn', async () => {
+        const prisma = makePrisma();
+        const deck = { id: DECK_ID, name: 'My Deck', ownerId: USER_ID, cards: [] };
+        prisma.deck.findFirst.mockResolvedValueOnce(deck);
+
+        const result = await createDeckService(prisma as never).getDeck(USER_ID, DECK_ID);
+
+        expect(result).toBe(deck);
+    });
+
+    it('renameDeck delegates to renameDeck fn', async () => {
+        const prisma = makePrisma();
+        prisma.deck.updateMany.mockResolvedValueOnce({ count: 1 });
+
+        const result = await createDeckService(prisma as never).renameDeck(USER_ID, DECK_ID, 'New Name');
+
+        expect(result).toBe(true);
+    });
+
+    it('deleteDeck delegates to deleteDeck fn', async () => {
+        const prisma = makePrisma();
+        prisma.deck.deleteMany.mockResolvedValueOnce({ count: 1 });
+
+        const result = await createDeckService(prisma as never).deleteDeck(USER_ID, DECK_ID);
+
+        expect(result).toBe(true);
     });
 });
