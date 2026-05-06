@@ -65,10 +65,13 @@ your-guess-who/
 │   │   ├── server.ts                 # port binding, Socket.io init
 │   │   ├── app.ts                    # createApp factory, route mounting
 │   │   ├── lib/                      # singletons (env, db, cognito)
+│   │   ├── middleware/               # Express middleware (auth)
 │   │   ├── routes/                   # thin Express handlers
 │   │   ├── services/                 # business logic, injected deps
+│   │   ├── types/                    # global type augmentations
 │   │   └── utils/                    # shared helpers
 │   └── tests/
+│       ├── middleware/
 │       ├── services/
 │       └── utils/
 ├── frontend/
