@@ -57,11 +57,19 @@ Players alternate turns. Active player interacts with board — grid of all 24 c
 1. Instead of eliminating, active player clicks **Guess Who?**
 2. Select one remaining card from board
 3. Click **Confirm**
-4. Correct guess → **You Win** for guesser, **You Lose** for opponent
-5. Wrong guess → guesser loses immediately (**You Lose** / **You Win**)
-6. Game ends regardless of guess outcome
+4. Correct guess → **You Win** for guesser, **You Lose** for opponent — game ends
+5. Wrong guess → guessed card eliminated from guesser's board, turn passes to opponent — game continues
 
 ### Post-Game
 
-- Both players see win or lose result screen
-- Players can rematch (same deck, new random secret cards) or return to home screen
+- Both players see win or lose result screen, both secret cards revealed
+- Players return to home screen
+
+---
+
+## Future Features
+
+- **Rematch** — post-game option to replay with same deck, new random secret cards
+- **Visible opponent board** — both boards shown on each player's screen (requires persisting eliminated cards server-side)
+- **Spectators** — authenticated users can observe active games as read-only viewers (requires in-app chat or audio)
+- **Game archive** — completed games stored with result history; cleanup job to purge old records
