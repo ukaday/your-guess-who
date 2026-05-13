@@ -46,8 +46,8 @@ ECR (backend Docker images)
 
 One shared socket, init on game join, torn down on leave. Events:
 
-- **Emit**: `select-card`, `ask-question`, `answer-question`, `make-guess`, `concede`
-- **Listen**: `game-started`, `question-asked`, `question-answered`, `guess-result`, `opponent-disconnected`, `game-over`
+- **Emit**: `game:join`, `game:eliminate`, `game:guess`, `game:concede`
+- **Listen**: `game:started`, `game:your-card`, `game:turn-ended`, `game:over`, `game:opponent-disconnected`, `game:opponent-reconnected`, `game:error`
 
 ### Image Uploads
 
@@ -111,15 +111,28 @@ Socket.io runs alongside Express on same HTTP server. Each game gets own room (`
 
 **Server-side events handled**:
 
-| Event              | Payload                     | Action                                          |
-|--------------------|-----------------------------|-------------------------------------------------|
-| `select-card`      | `{ cardId }`                | Record secret card, emit `game-started` if both ready |
-| `ask-question`     | `{ text }`                  | Broadcast question to opponent                  |
-| `answer-question`  | `{ answer: 'yes' \| 'no' }` | Broadcast answer, advance turn                  |
-| `make-guess`       | `{ cardId }`                | Evaluate guess, emit `game-over` to both        |
-| `concede`          | —                           | Emit `game-over` to both                        |
+| Event            | Payload                 | Action                                                                                      |
+|------------------|-------------------------|---------------------------------------------------------------------------------------------|
+| `game:join`      | `{ gameId }`            | Verify user is a `GamePlayer` for this game, join socket room. Re-emit `game:your-card` + full game state to that socket (handles reconnect). If both players now in room and game is LOBBY: randomly assign secret cards, randomly pick first `activePlayerId`, set status → ACTIVE, emit `game:started` to room + `game:your-card` to each socket individually |
+| `game:eliminate` | `{ cardIds: string[] }` | Validate game ACTIVE + sender is `activePlayerId`; advance `activePlayerId` to opponent; emit `game:turn-ended` to room. `cardIds` accepted but not persisted — stored in future for visible opponent board feature |
+| `game:guess`     | `{ cardId }`            | Validate game ACTIVE + sender is `activePlayerId`. Correct (`cardId` === opponent's `secretCardId`): set `winnerId`, status → FINISHED, emit `game:over` to room with both secret cards revealed. Wrong: advance `activePlayerId` to opponent, emit `game:turn-ended` with `guessedCardId` so guesser can eliminate it locally |
+| `game:concede`   | —                       | Validate game ACTIVE + sender is a player; set `winnerId` to opponent, status → FINISHED; emit `game:over` to room |
 
-Connection auth: JWT passed as `auth.token` in Socket.io handshake, verified before joining any room.
+**Server-emitted events**:
+
+| Event                      | Target  | Payload                                          |
+|----------------------------|---------|--------------------------------------------------|
+| `game:started`             | room    | Full game state (no secret cards)                |
+| `game:your-card`           | socket  | `{ cardId }` — sent individually, never to room |
+| `game:turn-ended`          | room    | Full game state + optional `{ guessedCardId }`  |
+| `game:over`                | room    | `{ winnerId, reason, revealedCards }`            |
+| `game:opponent-disconnected` | room  | —                                                |
+| `game:opponent-reconnected`  | room  | —                                                |
+| `game:error`               | socket  | `{ message }` — dev: full error, prod: generic  |
+
+Questions are asked verbally in real life — no in-app chat or question events.
+
+Connection auth: JWT passed as `auth.token` in Socket.io handshake. Invalid/missing token rejected at handshake (`connect_error` on client).
 
 ### Authentication
 
@@ -152,13 +165,15 @@ model Card {
 }
 
 model Game {
-  id         String       @id @default(cuid())
-  inviteCode String       @unique
-  status     GameStatus
-  deck       Deck         @relation(fields: [deckId], references: [id])
-  deckId     String
-  players    GamePlayer[]
-  createdAt  DateTime     @default(now())
+  id             String       @id @default(cuid())
+  inviteCode     String       @unique
+  status         GameStatus
+  deck           Deck         @relation(fields: [deckId], references: [id])
+  deckId         String
+  players        GamePlayer[]
+  activePlayerId String?      // null until ACTIVE
+  winnerId       String?      // null until FINISHED
+  createdAt      DateTime     @default(now())
 }
 
 model GamePlayer {
@@ -267,3 +282,12 @@ Before building features on newly deployed layer, verify end-to-end connectivity
 - **Frontend canary**: on load, fetch `/api/health`, display response on screen
 
 Must pass before feature work begins on that layer. See `docs/bootstrap.md` for when to run.
+
+---
+
+## Future Features
+
+- **Persist eliminated cards** — add `GamePlayerCard` join table tracking which cards each player has eliminated; `game:turn-ended` payload includes each player's eliminated set; enables visible opponent board (shows how many cards opponent has eliminated)
+- **Rematch** — post-game socket event to signal both players want rematch; server creates new game with same deck, new random secret cards
+- **Spectators** — read-only socket room members; requires `game:join` permission check relaxed + in-app audio or text chat for questions/answers
+- **Game archive + cleanup** — result history per user; cron job to purge `FINISHED` games older than 30 days
