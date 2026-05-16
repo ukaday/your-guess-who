@@ -3,10 +3,11 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { prisma } from './lib/db.js';
 import { cognito } from './lib/cognito.js';
+import { s3 } from './lib/s3.js';
 import { createApp } from './app.js';
 import { env } from './lib/env.js';
 
-const app = createApp(prisma, cognito, env.FRONTEND_ORIGIN);
+const app = createApp(prisma, cognito, s3, env.S3_BUCKET, env.FRONTEND_ORIGIN);
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {

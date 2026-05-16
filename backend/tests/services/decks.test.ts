@@ -229,7 +229,9 @@ describe('createDeckService', () => {
         const decks = [{ id: DECK_ID, name: 'My Deck', ownerId: USER_ID }];
         prisma.deck.findMany.mockResolvedValueOnce(decks);
 
-        const result = await createDeckService(prisma as never).listDecks(USER_ID);
+        const result = await createDeckService(prisma as never).listDecks(
+            USER_ID,
+        );
 
         expect(result).toBe(decks);
     });
@@ -239,17 +241,28 @@ describe('createDeckService', () => {
         const deck = { id: DECK_ID, name: 'New Deck', ownerId: USER_ID };
         prisma.deck.create.mockResolvedValueOnce(deck);
 
-        const result = await createDeckService(prisma as never).createDeck(USER_ID, 'New Deck');
+        const result = await createDeckService(prisma as never).createDeck(
+            USER_ID,
+            'New Deck',
+        );
 
         expect(result).toBe(deck);
     });
 
     it('getDeck delegates to getDeck fn', async () => {
         const prisma = makePrisma();
-        const deck = { id: DECK_ID, name: 'My Deck', ownerId: USER_ID, cards: [] };
+        const deck = {
+            id: DECK_ID,
+            name: 'My Deck',
+            ownerId: USER_ID,
+            cards: [],
+        };
         prisma.deck.findFirst.mockResolvedValueOnce(deck);
 
-        const result = await createDeckService(prisma as never).getDeck(USER_ID, DECK_ID);
+        const result = await createDeckService(prisma as never).getDeck(
+            USER_ID,
+            DECK_ID,
+        );
 
         expect(result).toBe(deck);
     });
@@ -258,7 +271,11 @@ describe('createDeckService', () => {
         const prisma = makePrisma();
         prisma.deck.updateMany.mockResolvedValueOnce({ count: 1 });
 
-        const result = await createDeckService(prisma as never).renameDeck(USER_ID, DECK_ID, 'New Name');
+        const result = await createDeckService(prisma as never).renameDeck(
+            USER_ID,
+            DECK_ID,
+            'New Name',
+        );
 
         expect(result).toBe(true);
     });
@@ -267,7 +284,10 @@ describe('createDeckService', () => {
         const prisma = makePrisma();
         prisma.deck.deleteMany.mockResolvedValueOnce({ count: 1 });
 
-        const result = await createDeckService(prisma as never).deleteDeck(USER_ID, DECK_ID);
+        const result = await createDeckService(prisma as never).deleteDeck(
+            USER_ID,
+            DECK_ID,
+        );
 
         expect(result).toBe(true);
     });
