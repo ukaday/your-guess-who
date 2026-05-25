@@ -9,3 +9,13 @@ export const selectSecretCards = (cards: Card[]) => {
 
     return [shuffled[0], shuffled[1]];
 };
+
+export const pickFirstPlayer = (players: string[]) => {
+    if (players.length === 0) {
+        throw new Error('Input player list is empty')
+    }
+
+    const shuffled = [...players].sort(() => Math.random() - 0.5);
+
+    return shuffled[0];
+}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Card } from '../../src/generated/prisma/client.js';
-import { selectSecretCards } from '../../src/services/game-logic.js';
+import { selectSecretCards, pickFirstPlayer } from '../../src/services/game-logic.js';
 
 describe('selectSecretCards', () => {
     it('returns two cards', () => {
@@ -42,11 +42,28 @@ describe('selectSecretCards', () => {
     });
 
 
-    it('returns two cards', () => {
+    it('throws if fewer than 2 cards', () => {
         const cards = [
             { id: 'card1', name: 'Alice', imageKey: 'img/1', deckId: 'deck-1' },
         ] as Card[];
 
         expect(() => selectSecretCards(cards)).toThrow('Input card list contains less than two cards');
+    });
+});
+
+
+describe('pickFirstPlayer', () => {
+    it('returns a player', () => {
+        const players = ['player-1', 'player-2'];
+
+        const result = pickFirstPlayer(players);
+
+        expect(players).toContain(result);
+    });
+
+    it('throws if player list is empty', () => {
+        const players: string[] = [];
+
+        expect(() => pickFirstPlayer(players)).toThrow('Input player list is empty');
     });
 });
