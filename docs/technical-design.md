@@ -285,6 +285,13 @@ Must pass before feature work begins on that layer. See `docs/bootstrap.md` for 
 
 ---
 
+## Future Enhancements
+
+- **Invite code collision handling** — codes are 6-char UUID-derived (alphanumeric uppercase). Collision probability is negligible at current scale but not zero. Future: retry generation on `P2002` unique constraint violation, or switch to a larger code space.
+- **Eliminated cards persistence** — currently client-only state, lost on refresh. Future: persist per-player eliminated card IDs in DB to support reconnect board restoration and visible opponent elimination count.
+- **Finished game cleanup** — completed games are kept indefinitely. Future: scheduled job to archive or delete games older than X days.
+- **Typed Socket.io event maps** — currently using `Record<string, never>` (no typed events). Future: define `ClientEvents` and `ServerEvents` maps so `socket.emit`/`socket.on` are type-checked at compile time.
+
 ## Future Features
 
 - **Persist eliminated cards** — add `GamePlayerCard` join table tracking which cards each player has eliminated; `game:turn-ended` payload includes each player's eliminated set; enables visible opponent board (shows how many cards opponent has eliminated)
