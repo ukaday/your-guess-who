@@ -38,8 +38,10 @@ model Game {
     status     GameStatus
     deck       Deck         @relation(fields: [deckId], references: [id])
     deckId     String
-    players    GamePlayer[]
-    createdAt  DateTime     @default(now())
+    players        GamePlayer[]
+    activePlayerId String?
+    winnerId       String?
+    createdAt      DateTime     @default(now())
 }
 
 model GamePlayer {
