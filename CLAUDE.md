@@ -37,7 +37,7 @@ DB runs in Docker (`docker-compose.yml` at repo root). Backend and frontend run 
 
 Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm packages.
 
-**Backend** — Express + Socket.io on single HTTP server. Entry: `src/server.ts` (port binding, Socket.io) + `src/app.ts` (`createApp(prisma, cognito, corsOrigin)` factory). Layered: `src/lib/` (env, db, cognito singletons), `src/routes/` (thin handlers via `handleError`), `src/services/` (business logic, injected deps), `src/utils/` (shared helpers). Socket.io rooms per game (`game:<id>`). Prisma 7 via `@prisma/adapter-pg`. AWS SDK v3 for Cognito auth + S3 pre-signed URLs.
+**Backend** — Express + Socket.io on single HTTP server. Entry: `src/server.ts` (port binding, Socket.io) + `src/app.ts` (`createApp(prisma, cognito, corsOrigin)` factory). Layered: `src/lib/` (env, db, cognito singletons), `src/middleware/` (Express auth + Socket.io auth), `src/routes/` (thin handlers via `handleError`), `src/services/` (business logic, injected deps), `src/socket/` (Socket.io event handlers), `src/utils/` (shared helpers). Socket.io rooms per game (`game:<id>`). JWT passed as `auth.token` in handshake, validated by `createSocketAuthMiddleware`. Prisma 7 via `@prisma/adapter-pg`. AWS SDK v3 for Cognito auth + S3 pre-signed URLs.
 
 **Frontend** — Vue 3 + Vite + TypeScript. Pinia stores: `authStore`, `deckStore`, `gameStore`. One shared Socket.io client, init on game join, torn down on leave. Card images upload direct to S3 via pre-signed URL (never through app server). Vite proxy `/api` → `http://localhost:3000` for local dev.
 
@@ -65,9 +65,10 @@ your-guess-who/
 │   │   ├── server.ts                 # port binding, Socket.io init
 │   │   ├── app.ts                    # createApp factory, route mounting
 │   │   ├── lib/                      # singletons (env, db, cognito)
-│   │   ├── middleware/               # Express middleware (auth)
+│   │   ├── middleware/               # Express + Socket.io auth middleware
 │   │   ├── routes/                   # thin Express handlers
 │   │   ├── services/                 # business logic, injected deps
+│   │   ├── socket/                   # Socket.io event handlers
 │   │   ├── types/                    # global type augmentations
 │   │   └── utils/                    # shared helpers
 │   └── tests/

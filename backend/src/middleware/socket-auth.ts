@@ -11,22 +11,20 @@ export const createSocketAuthMiddleware = (
         clientId,
     });
 
-    return async (gameSocket: GameSocket, next: (err?: Error) => void) => {
+    return (gameSocket: GameSocket, next: (err?: Error) => void) => {
         if (!gameSocket.handshake.auth.token) {
             next(new Error('Missing token'));
+
             return;
         }
 
-        try {
-            const payload = await verifier.verify(
-                gameSocket.handshake.auth.token as string,
-            );
+        return verifier
+            .verify(gameSocket.handshake.auth.token as string)
+            .then((payload) => {
+                gameSocket.data.userId = payload.sub;
 
-            gameSocket.data.userId = payload.sub;
-
-            next();
-        } catch {
-            next(new Error('Invalid or expired token'));
-        }
+                next();
+            })
+            .catch(() => next(new Error('Invalid or expired token')));
     };
 };

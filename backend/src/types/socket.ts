@@ -3,13 +3,13 @@ import type { Game, GamePlayer } from '../generated/prisma/client.js';
 
 export type SocketData = { userId: string };
 
-type EmptyEvents = Record<string, never>;
+export type EmptyEvents = Record<string, never>;
 
-type ClientEvents = {
+export type ClientEvents = {
     'game:join': (payload: GameJoinPayload) => void;
 };
 
-type ServerEvents = {
+export type ServerEvents = {
     'game:started': (state: GameSnapshotPayload) => void;
     'game:error': (payload: GameErrorPayload) => void;
     'game:your-card': (payload: GameYourCardPayload) => void;
