@@ -3,6 +3,7 @@ import type { Card } from '../../src/generated/prisma/client.js';
 import {
     selectSecretCards,
     pickFirstPlayer,
+    decideJoinOutcome,
 } from '../../src/services/game-logic.js';
 
 describe('selectSecretCards', () => {
@@ -69,5 +70,56 @@ describe('pickFirstPlayer', () => {
         expect(() => pickFirstPlayer(players)).toThrow(
             'Input player list is empty',
         );
+    });
+});
+
+describe('decideJoinOutcome', () => {
+    const lobbyGame = {
+        status: 'LOBBY' as const,
+        players: [
+            { userId: 'player-1', secretCardId: null },
+            { userId: 'player-2', secretCardId: null },
+        ],
+    };
+
+    it('rejects when the user is not a player in the game', () => {
+        const result = decideJoinOutcome(lobbyGame, 'stranger', []);
+
+        expect(result).toEqual({ type: 'REJECT', message: 'Game not found' });
+    });
+
+    it('rejects when the user is already connected from another client', () => {
+        const result = decideJoinOutcome(lobbyGame, 'player-1', ['player-1']);
+
+        expect(result).toEqual({
+            type: 'REJECT',
+            message: 'Already connected to this game',
+        });
+    });
+
+    it('reveals the secret card when the game is ACTIVE', () => {
+        const activeGame = {
+            status: 'ACTIVE' as const,
+            players: [
+                { userId: 'player-1', secretCardId: 'card-1' },
+                { userId: 'player-2', secretCardId: 'card-2' },
+            ],
+        };
+
+        const result = decideJoinOutcome(activeGame, 'player-1', []);
+
+        expect(result).toEqual({ type: 'REVEAL_CARD', cardId: 'card-1' });
+    });
+
+    it('waits when the joining player is the only one in the room', () => {
+        const result = decideJoinOutcome(lobbyGame, 'player-1', []);
+
+        expect(result).toEqual({ type: 'WAIT' });
+    });
+
+    it('starts when a second unique player joins a LOBBY game', () => {
+        const result = decideJoinOutcome(lobbyGame, 'player-2', ['player-1']);
+
+        expect(result).toEqual({ type: 'START' });
     });
 });

@@ -6,7 +6,7 @@ export type SocketData = { userId: string };
 export type EmptyEvents = Record<string, never>;
 
 export type ClientEvents = {
-    'game:join': (payload: GameJoinPayload) => void;
+    'game:join': (payload: GameJoinPayload, ack?: () => void) => void;
 };
 
 export type ServerEvents = {

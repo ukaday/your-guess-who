@@ -1,4 +1,15 @@
-import type { Card } from '../generated/prisma/client.js';
+import type { Card, GameStatus } from '../generated/prisma/client.js';
+
+export type JoinOutcome =
+    | { type: 'REJECT'; message: string }
+    | { type: 'REVEAL_CARD'; cardId: string }
+    | { type: 'WAIT' }
+    | { type: 'START' };
+
+type JoinDecisionGame = {
+    status: GameStatus;
+    players: { userId: string; secretCardId: string | null }[];
+};
 
 export const selectSecretCards = (cards: Card[]): [Card, Card] => {
     if (cards.length < 2) {
@@ -18,4 +29,32 @@ export const pickFirstPlayer = (players: string[]): string => {
     const shuffled = [...players].sort(() => Math.random() - 0.5);
 
     return shuffled[0]!;
+};
+
+export const decideJoinOutcome = (
+    game: JoinDecisionGame,
+    userId: string,
+    userIdsInRoom: string[],
+): JoinOutcome => {
+    const player = game.players.find((p) => p.userId === userId);
+
+    if (!player) {
+        return { type: 'REJECT', message: 'Game not found' };
+    }
+
+    if (userIdsInRoom.includes(userId)) {
+        return { type: 'REJECT', message: 'Already connected to this game' };
+    }
+
+    if (game.status === 'ACTIVE') {
+        return { type: 'REVEAL_CARD', cardId: player.secretCardId! };
+    }
+
+    const uniquePlayersAfterJoin = new Set([...userIdsInRoom, userId]).size;
+
+    if (uniquePlayersAfterJoin < 2) {
+        return { type: 'WAIT' };
+    }
+
+    return { type: 'START' };
 };

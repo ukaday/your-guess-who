@@ -6,16 +6,20 @@ import type {
     GameRemoteSocket,
     GameSnapshotPayload,
 } from '../types/socket.js';
-import { selectSecretCards, pickFirstPlayer } from '../services/game-logic.js';
+import {
+    selectSecretCards,
+    pickFirstPlayer,
+    decideJoinOutcome,
+} from '../services/game-logic.js';
 
 export function registerGameHandlers(
     io: GameServer,
     socket: GameSocket,
     prisma: PrismaClient,
 ) {
-    socket.on('game:join', (payload) =>
-        onGameJoin(io, socket, prisma, payload),
-    );
+    socket.on('game:join', (payload, ack) => {
+        void onGameJoin(io, socket, prisma, payload).then(() => ack?.());
+    });
 }
 
 async function onGameJoin(
@@ -35,39 +39,37 @@ async function onGameJoin(
         return;
     }
 
-    if (!game.players.some((p) => p.userId === socket.data.userId)) {
-        socket.emit('game:error', { message: 'Game not found' });
+    const roomName = `game:${game.id}`;
+    const socketsInRoom = await io.in(roomName).fetchSockets();
+    const userIdsInRoom = socketsInRoom.map((s) => s.data.userId);
+
+    const outcome = decideJoinOutcome(game, socket.data.userId, userIdsInRoom);
+
+    if (outcome.type === 'REJECT') {
+        socket.emit('game:error', { message: outcome.message });
 
         return;
     }
 
-    const roomName = `game:${game.id}`;
     await socket.join(roomName);
 
-    const socketsInRoom = await io.in(roomName).fetchSockets();
-
-    if (game.status === 'ACTIVE') {
-        const player = game.players.find(
-            (p) => p.userId === socket.data.userId,
-        )!;
-
-        socket.emit('game:your-card', { cardId: player.secretCardId! });
+    if (outcome.type === 'REVEAL_CARD') {
+        socket.emit('game:your-card', { cardId: outcome.cardId });
 
         return;
     }
 
-    if (socketsInRoom.length < 2) {
+    if (outcome.type === 'WAIT') {
         return;
     }
 
-    await startGame(io, prisma, game, socketsInRoom, roomName);
+    await startGame(io, prisma, game, roomName);
 }
 
 async function startGame(
     io: GameServer,
     prisma: PrismaClient,
     game: GameSnapshotPayload & { deck: { cards: Card[] } },
-    socketsInRoom: GameRemoteSocket[],
     roomName: string,
 ) {
     const [card1, card2] = selectSecretCards(game.deck.cards);
@@ -83,6 +85,8 @@ async function startGame(
         winnerId: null,
         players: game.players,
     });
+
+    const socketsInRoom = await io.in(roomName).fetchSockets();
 
     emitSecretCards(socketsInRoom, playerIds, card1, card2);
 }
