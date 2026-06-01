@@ -1,10 +1,11 @@
-import type { PrismaClient, Card } from '../generated/prisma/client.js';
+import type { PrismaClient, Card, GamePlayer } from '../generated/prisma/client.js';
 import type {
     GameSocket,
     GameServer,
     GameJoinPayload,
     GameRemoteSocket,
     GameSnapshotPayload,
+    GameActivePlayerChangedPayload
 } from '../types/socket.js';
 import {
     selectSecretCards,
@@ -19,6 +20,10 @@ export function registerGameHandlers(
 ) {
     socket.on('game:join', (payload, ack) => {
         void onGameJoin(io, socket, prisma, payload).then(() => ack?.());
+    });
+
+    socket.on('game:eliminate', function() {
+        void onGameEliminate(io, socket, prisma);
     });
 }
 
@@ -52,6 +57,7 @@ async function onGameJoin(
     }
 
     await socket.join(roomName);
+    socket.data.gameId = game.id;
 
     if (outcome.type === 'REVEAL_CARD') {
         socket.emit('game:your-card', { cardId: outcome.cardId });
@@ -92,6 +98,7 @@ async function startGame(
 }
 
 async function activateGame(
+
     prisma: PrismaClient,
     gameId: string,
     firstPlayerId: string,
@@ -126,4 +133,24 @@ function emitSecretCards(
 
         s.emit('game:your-card', { cardId });
     });
+}
+
+async function onGameEliminate(
+    io: GameServer,
+    socket: GameSocket,
+    prisma: PrismaClient,
+) {
+    const gameId = socket.data.gameId;
+
+    const game = await prisma.game.findUnique({
+        where: { id: gameId },
+        include: { players: true }
+    });
+
+    const playerIds = (game.players as [GamePlayer, GamePlayer]).map((p) => p.userId);
+
+    const newActivePlayerId = playerIds.find(playerId => playerId !== game.activePlayerId) as string;
+
+    game.activePlayerId = newActivePlayerId;
+    io.to(`game:${game.id}`).emit('game:active-player-changed', { activePlayerId: newActivePlayerId });
 }

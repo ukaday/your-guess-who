@@ -109,12 +109,14 @@ All routes prefixed `/api`.
 
 Socket.io runs alongside Express on same HTTP server. Each game gets own room (`game:<id>`).
 
+Per-socket state: `socket.data` holds `{ userId, gameId? }`. `userId` set by auth middleware on connect. `gameId` set on successful `game:join` so later events (`game:eliminate`, `game:guess`, `game:concede`) derive game context from the socket rather than from each payload.
+
 **Server-side events handled**:
 
 | Event            | Payload                 | Action                                                                                      |
 |------------------|-------------------------|---------------------------------------------------------------------------------------------|
-| `game:join`      | `{ gameId }`            | Verify user is a `GamePlayer` for this game, join socket room. Re-emit `game:your-card` + full game state to that socket (handles reconnect). If both players now in room and game is LOBBY: randomly assign secret cards, randomly pick first `activePlayerId`, set status → ACTIVE, emit `game:started` to room + `game:your-card` to each socket individually |
-| `game:eliminate` | `{ cardIds: string[] }` | Validate game ACTIVE + sender is `activePlayerId`; advance `activePlayerId` to opponent; emit `game:turn-ended` to room. `cardIds` accepted but not persisted — stored in future for visible opponent board feature |
+| `game:join`      | `{ gameId }`            | Verify user is a `GamePlayer` for this game, join socket room, store `gameId` in `socket.data.gameId` (used by subsequent events). Re-emit `game:your-card` + full game state to that socket (handles reconnect). If both players now in room and game is LOBBY: randomly assign secret cards, randomly pick first `activePlayerId`, set status → ACTIVE, emit `game:started` to room + `game:your-card` to each socket individually |
+| `game:eliminate` | —                       | Validate game ACTIVE + sender is `activePlayerId`; advance `activePlayerId` to opponent; emit `game:turn-ended` to room. (Future: `{ cardIds }` payload for visible opponent board feature — not in MVP) |
 | `game:guess`     | `{ cardId }`            | Validate game ACTIVE + sender is `activePlayerId`. Correct (`cardId` === opponent's `secretCardId`): set `winnerId`, status → FINISHED, emit `game:over` to room with both secret cards revealed. Wrong: advance `activePlayerId` to opponent, emit `game:turn-ended` with `guessedCardId` so guesser can eliminate it locally |
 | `game:concede`   | —                       | Validate game ACTIVE + sender is a player; set `winnerId` to opponent, status → FINISHED; emit `game:over` to room |
 
@@ -124,7 +126,7 @@ Socket.io runs alongside Express on same HTTP server. Each game gets own room (`
 |----------------------------|---------|--------------------------------------------------|
 | `game:started`             | room    | Full game state (no secret cards)                |
 | `game:your-card`           | socket  | `{ cardId }` — sent individually, never to room |
-| `game:turn-ended`          | room    | Full game state + optional `{ guessedCardId }`  |
+| `game:turn-ended`          | room    | `{ activePlayerId, guessedCardId? }` (`guessedCardId` set only after wrong guess)  |
 | `game:over`                | room    | `{ winnerId, reason, revealedCards }`            |
 | `game:opponent-disconnected` | room  | —                                                |
 | `game:opponent-reconnected`  | room  | —                                                |
@@ -290,7 +292,7 @@ Must pass before feature work begins on that layer. See `docs/bootstrap.md` for 
 - **Invite code collision handling** — codes are 6-char UUID-derived (alphanumeric uppercase). Collision probability is negligible at current scale but not zero. Future: retry generation on `P2002` unique constraint violation, or switch to a larger code space.
 - **Eliminated cards persistence** — currently client-only state, lost on refresh. Future: persist per-player eliminated card IDs in DB to support reconnect board restoration and visible opponent elimination count.
 - **Finished game cleanup** — completed games are kept indefinitely. Future: scheduled job to archive or delete games older than X days.
-- **Typed Socket.io event maps** — currently using `Record<string, never>` (no typed events). Future: define `ClientEvents` and `ServerEvents` maps so `socket.emit`/`socket.on` are type-checked at compile time.
+- **Ack reliability on socket handlers** — handlers thread ack via `.then(() => ack?.())`. If the handler promise rejects, the `.then` is skipped and ack never fires — client `emitWithAck` hangs indefinitely. Future: switch to `.finally(() => ack?.())` so ack always fires regardless of handler outcome, and add an `emitWithAck` timeout on the client side as belt-and-suspenders.
 
 ## Future Features
 

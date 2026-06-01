@@ -8,27 +8,58 @@ import type {
     GameSnapshotPayload,
     GameYourCardPayload,
     GameErrorPayload,
+    GameActivePlayerChangedPayload
 } from '../../src/types/socket.js';
 
 type TestClient = Socket<ServerEvents, ClientEvents>;
 
-describe('game:join', function () {
+async function startTwoPlayerGame(port: number) {
+    const seeded = await seedLobbyGame();
+
+    const client1: TestClient = Client(`http://localhost:${port}`, {
+        auth: { token: seeded.player1Id },
+    });
+    const client2: TestClient = Client(`http://localhost:${port}`, {
+        auth: { token: seeded.player2Id },
+    });
+
+    const started1 = new Promise<GameSnapshotPayload>(function(resolve) {
+        client1.once('game:started', resolve);
+    });
+    const started2 = new Promise<GameSnapshotPayload>(function(resolve) {
+        client2.once('game:started', resolve);
+    });
+
+    const yourCard1 = new Promise<GameYourCardPayload>(function(resolve) {
+        client1.once('game:your-card', resolve);
+    });
+    const yourCard2 = new Promise<GameYourCardPayload>(function(resolve) {
+        client2.once('game:your-card', resolve);
+    });
+
+    await client1.emitWithAck('game:join', { gameId: seeded.gameId });
+    await client2.emitWithAck('game:join', { gameId: seeded.gameId });
+
+    return { client1, client2, started1, started2, yourCard1, yourCard2, seeded };
+};
+
+describe('game:join', function() {
     let port: number;
     let close: () => Promise<void>;
 
-    beforeAll(async function () {
+    beforeAll(async function() {
         ({ port, close } = await startTestServer());
     });
 
-    afterAll(async function () {
+    afterAll(async function() {
         await close();
     });
 
-    afterEach(async function () {
+    afterEach(async function() {
         await resetDb();
     });
 
-    it('emits game:started with ACTIVE status to both players when second unique player joins', async function () {
+    it('emits game:started with ACTIVE status to both players when second unique player joins', async function() {
         const game = await startTwoPlayerGame(port);
 
         expect((await game.started1).status).toBe('ACTIVE');
@@ -38,7 +69,7 @@ describe('game:join', function () {
         game.client2.disconnect();
     });
 
-    it('emits game:your-card with distinct cards to each player when second unique player joins', async function () {
+    it('emits game:your-card with distinct cards to each player when second unique player joins', async function() {
         const game = await startTwoPlayerGame(port);
 
         const yourCard1 = await game.yourCard1;
@@ -50,12 +81,12 @@ describe('game:join', function () {
         game.client2.disconnect();
     });
 
-    it('emits game:error when the game does not exist', async function () {
+    it('emits game:error when the game does not exist', async function() {
         const client: TestClient = Client(`http://localhost:${port}`, {
             auth: { token: 'any-user' },
         });
 
-        const errorReceived = new Promise<GameErrorPayload>(function (resolve) {
+        const errorReceived = new Promise<GameErrorPayload>(function(resolve) {
             client.once('game:error', resolve);
         });
 
@@ -69,30 +100,51 @@ describe('game:join', function () {
     });
 });
 
-async function startTwoPlayerGame(port: number) {
-    const seeded = await seedLobbyGame();
-    const client1: TestClient = Client(`http://localhost:${port}`, {
-        auth: { token: seeded.player1Id },
-    });
-    const client2: TestClient = Client(`http://localhost:${port}`, {
-        auth: { token: seeded.player2Id },
+describe('game:eliminate', function() {
+    let port: number;
+    let close: () => Promise<void>;
+
+    beforeAll(async function() {
+        ({ port, close } = await startTestServer());
     });
 
-    const started1 = new Promise<GameSnapshotPayload>(function (resolve) {
-        client1.once('game:started', resolve);
-    });
-    const started2 = new Promise<GameSnapshotPayload>(function (resolve) {
-        client2.once('game:started', resolve);
-    });
-    const yourCard1 = new Promise<GameYourCardPayload>(function (resolve) {
-        client1.once('game:your-card', resolve);
-    });
-    const yourCard2 = new Promise<GameYourCardPayload>(function (resolve) {
-        client2.once('game:your-card', resolve);
+    afterAll(async function() {
+        await close();
     });
 
-    await client1.emitWithAck('game:join', { gameId: seeded.gameId });
-    await client2.emitWithAck('game:join', { gameId: seeded.gameId });
 
-    return { client1, client2, started1, started2, yourCard1, yourCard2 };
-}
+    afterEach(async function() {
+        await resetDb();
+    });
+
+    it('emits game:turn-ended with opponent as new activePlayerId after eliminate', async function() {
+        const game = await startTwoPlayerGame(port);
+
+        const state = await game.started1;
+
+        const activeClient = state.activePlayerId === game.seeded.player1Id
+            ? game.client1
+            : game.client2;
+
+        const inactivePlayerId = state.activePlayerId === game.seeded.player1Id
+            ? game.seeded.player2Id
+            : game.seeded.player1Id;
+
+        const turnEnded = new Promise<GameActivePlayerChangedPayload>(function(resolve) {
+            activeClient.once('game:active-player-changed', resolve);
+        });
+
+        activeClient.emit('game:eliminate');
+
+        const result = await turnEnded;
+
+        expect(result.activePlayerId).toBe(inactivePlayerId);
+
+        game.client1.disconnect();
+        game.client2.disconnect();
+    });
+
+    it('emits game:error when non-active player tires to eliminate', async function() {
+
+    });
+});

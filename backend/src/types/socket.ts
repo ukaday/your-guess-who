@@ -1,18 +1,20 @@
 import type { RemoteSocket, Server, Socket } from 'socket.io';
 import type { Game, GamePlayer } from '../generated/prisma/client.js';
 
-export type SocketData = { userId: string };
+export type SocketData = { userId: string; gameId?: string };
 
 export type EmptyEvents = Record<string, never>;
 
 export type ClientEvents = {
     'game:join': (payload: GameJoinPayload, ack?: () => void) => void;
+    'game:eliminate': () => void;
 };
 
 export type ServerEvents = {
     'game:started': (state: GameSnapshotPayload) => void;
     'game:error': (payload: GameErrorPayload) => void;
     'game:your-card': (payload: GameYourCardPayload) => void;
+    'game:active-player-changed': (payload: GameActivePlayerChangedPayload) => void;
 };
 
 export type GameServer = Server<
@@ -35,3 +37,4 @@ export type GameJoinPayload = { gameId: string };
 export type GameSnapshotPayload = Game & { players: GamePlayer[] };
 export type GameErrorPayload = { message: string };
 export type GameYourCardPayload = { cardId: string };
+export type GameActivePlayerChangedPayload = { activePlayerId: string };
