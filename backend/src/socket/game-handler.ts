@@ -1,11 +1,15 @@
-import type { PrismaClient, Card, GamePlayer } from '../generated/prisma/client.js';
+import type {
+    PrismaClient,
+    Card,
+    GamePlayer,
+} from '../generated/prisma/client.js';
 import type {
     GameSocket,
     GameServer,
     GameJoinPayload,
     GameRemoteSocket,
     GameSnapshotPayload,
-    GameActivePlayerChangedPayload
+    GameActivePlayerChangedPayload,
 } from '../types/socket.js';
 import {
     selectSecretCards,
@@ -22,7 +26,7 @@ export function registerGameHandlers(
         void onGameJoin(io, socket, prisma, payload).then(() => ack?.());
     });
 
-    socket.on('game:eliminate', function() {
+    socket.on('game:eliminate', function () {
         void onGameEliminate(io, socket, prisma);
     });
 }
@@ -98,7 +102,6 @@ async function startGame(
 }
 
 async function activateGame(
-
     prisma: PrismaClient,
     gameId: string,
     firstPlayerId: string,
@@ -142,21 +145,41 @@ async function onGameEliminate(
 ) {
     const gameId = socket.data.gameId;
 
-    const game = await prisma.game.findUnique({
-        where: { id: gameId },
-        include: { players: true }
-    });
+    if (!gameId) {
+        socket.emit('game:error', { message: 'Game not found' });
 
-    if (socket.data.userId !== game.activePlayerId) {
-        socket.emit('game:error', { message: "Not your turn" });
+        return;
     }
 
-    const playerIds = (game.players as [GamePlayer, GamePlayer]).map((p) => p.userId);
+    const game = await prisma.game.findUnique({
+        where: { id: gameId },
+        include: { players: true },
+    });
 
-    const newActivePlayerId = playerIds[0] === game.activePlayerId
-        ? playerIds[1]
-        : playerIds[0];
+    if (!game) {
+        socket.emit('game:error', { message: 'Game not found' });
 
-    // update datebase game staet
-    io.to(`game:${game.id}`).emit('game:active-player-changed', { activePlayerId: newActivePlayerId });
+        return;
+    }
+
+    if (socket.data.userId !== game.activePlayerId) {
+        socket.emit('game:error', { message: 'Not your turn' });
+
+        return;
+    }
+
+    const [player1, player2] = game.players as [GamePlayer, GamePlayer];
+    const newActivePlayerId =
+        player1.userId === game.activePlayerId
+            ? player2.userId
+            : player1.userId;
+
+    await prisma.game.update({
+        where: { id: gameId },
+        data: { activePlayerId: newActivePlayerId },
+    });
+
+    io.to(`game:${game.id}`).emit('game:active-player-changed', {
+        activePlayerId: newActivePlayerId,
+    });
 }

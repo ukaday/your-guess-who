@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import type { Card } from '../../src/generated/prisma/client.js';
+import { GameStatus } from '../../src/generated/prisma/client.js';
 import {
     selectSecretCards,
     pickFirstPlayer,
     decideJoinOutcome,
+    decideEliminateOutcome,
+    type EliminateDecisionGame
 } from '../../src/services/game-logic.js';
 
 describe('selectSecretCards', () => {
@@ -121,5 +124,37 @@ describe('decideJoinOutcome', () => {
         const result = decideJoinOutcome(lobbyGame, 'player-2', ['player-1']);
 
         expect(result).toEqual({ type: 'START' });
+    });
+});
+
+describe('decideEliminateOutcome', function() {
+    const game: EliminateDecisionGame = {
+        status: GameStatus.ACTIVE,
+        activePlayerId: 'player-1',
+        players: [{ userId: 'player-1' }, { userId: 'player-2' }],
+    };
+
+    it('rejects if player is not active', function() {
+        const result = decideEliminateOutcome(game, 'player-2');
+
+        expect(result).toEqual({ type: 'REJECT', message: 'Not your turn' });
+    });
+
+    it('rejects if the game is not active', function() {
+        const activeGame: EliminateDecisionGame = {
+            status: GameStatus.LOBBY,
+            activePlayerId: 'player-1',
+            players: [{ userId: 'player-1' }, { userId: 'player-2' }],
+        }
+
+        const result = decideEliminateOutcome(activeGame, 'player-1');
+
+        expect(result).toEqual({ type: 'REJECT', message: 'Game is not active' });
+    });
+
+    it('advances turn and returns activePlayerId', function() {
+        const result = decideEliminateOutcome(game, 'player-1');
+
+        expect(result).toEqual({ type: 'ADVANCE_TURN', nextActivePlayerId: 'player-2' });
     });
 });

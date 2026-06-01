@@ -1,4 +1,4 @@
-import type { Card, GameStatus } from '../generated/prisma/client.js';
+import { Card, GameStatus } from '../generated/prisma/client.js';
 
 export type JoinOutcome =
     | { type: 'REJECT'; message: string }
@@ -9,6 +9,16 @@ export type JoinOutcome =
 type JoinDecisionGame = {
     status: GameStatus;
     players: { userId: string; secretCardId: string | null }[];
+};
+
+export type EliminateOutcome =
+    | { type: 'REJECT'; message: string }
+    | { type: 'ADVANCE_TURN'; nextActivePlayerId: string };
+
+export type EliminateDecisionGame = {
+    status: GameStatus;
+    activePlayerId: string | null;
+    players: [{ userId: string }, { userId: string }];
 };
 
 export const selectSecretCards = (cards: Card[]): [Card, Card] => {
@@ -58,3 +68,23 @@ export const decideJoinOutcome = (
 
     return { type: 'START' };
 };
+
+export function decideEliminateOutcome(
+    game: EliminateDecisionGame,
+    userId: string,
+): EliminateOutcome {
+    if (game.activePlayerId !== userId) {
+        return { type: 'REJECT', message: 'Not your turn' };
+    }
+
+    if (game.status !== GameStatus.ACTIVE) {
+        return { type: 'REJECT', message: 'Game is not active' };
+    }
+
+    const newActivePlayerId =
+        game.players[0].userId === userId
+            ? game.players[1].userId
+            : game.players[0].userId;
+
+    return { type: 'ADVANCE_TURN', nextActivePlayerId: newActivePlayerId };
+}

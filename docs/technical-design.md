@@ -293,6 +293,7 @@ Must pass before feature work begins on that layer. See `docs/bootstrap.md` for 
 - **Eliminated cards persistence** — currently client-only state, lost on refresh. Future: persist per-player eliminated card IDs in DB to support reconnect board restoration and visible opponent elimination count.
 - **Finished game cleanup** — completed games are kept indefinitely. Future: scheduled job to archive or delete games older than X days.
 - **Ack reliability on socket handlers** — handlers thread ack via `.then(() => ack?.())`. If the handler promise rejects, the `.then` is skipped and ack never fires — client `emitWithAck` hangs indefinitely. Future: switch to `.finally(() => ack?.())` so ack always fires regardless of handler outcome, and add an `emitWithAck` timeout on the client side as belt-and-suspenders.
+- **GameStatus enum usage** — status comparisons currently use string literals (`game.status === 'ACTIVE'`, `status: 'LOBBY'` in seeds). Refactor to use the generated `GameStatus` const (e.g., `game.status === GameStatus.ACTIVE`) so renames in `schema.prisma` propagate through TS at compile time instead of silently breaking at runtime.
 
 ## Future Features
 

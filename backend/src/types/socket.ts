@@ -14,7 +14,9 @@ export type ServerEvents = {
     'game:started': (state: GameSnapshotPayload) => void;
     'game:error': (payload: GameErrorPayload) => void;
     'game:your-card': (payload: GameYourCardPayload) => void;
-    'game:active-player-changed': (payload: GameActivePlayerChangedPayload) => void;
+    'game:active-player-changed': (
+        payload: GameActivePlayerChangedPayload,
+    ) => void;
 };
 
 export type GameServer = Server<
