@@ -79,6 +79,7 @@ describe('game:join', function() {
 
         game.client1.disconnect();
         game.client2.disconnect();
+
     });
 
     it('emits game:error when the game does not exist', async function() {
@@ -100,9 +101,11 @@ describe('game:join', function() {
     });
 });
 
+
 describe('game:eliminate', function() {
     let port: number;
     let close: () => Promise<void>;
+
 
     beforeAll(async function() {
         ({ port, close } = await startTestServer());
@@ -117,7 +120,7 @@ describe('game:eliminate', function() {
         await resetDb();
     });
 
-    it('emits game:turn-ended with opponent as new activePlayerId after eliminate', async function() {
+    it('emits game:active-player-changed with opponent as new activePlayerId after eliminate', async function() {
         const game = await startTwoPlayerGame(port);
 
         const state = await game.started1;
@@ -130,13 +133,13 @@ describe('game:eliminate', function() {
             ? game.seeded.player2Id
             : game.seeded.player1Id;
 
-        const turnEnded = new Promise<GameActivePlayerChangedPayload>(function(resolve) {
+        const activePlayerChanged = new Promise<GameActivePlayerChangedPayload>(function(resolve) {
             activeClient.once('game:active-player-changed', resolve);
         });
 
         activeClient.emit('game:eliminate');
 
-        const result = await turnEnded;
+        const result = await activePlayerChanged;
 
         expect(result.activePlayerId).toBe(inactivePlayerId);
 
@@ -144,7 +147,26 @@ describe('game:eliminate', function() {
         game.client2.disconnect();
     });
 
-    it('emits game:error when non-active player tires to eliminate', async function() {
+    it('emits game:error when non-active player tries to eliminate', async function() {
+        const game = await startTwoPlayerGame(port);
 
+        const state = await game.started1;
+
+        const noneActiveClient = state.activePlayerId === game.seeded.player1Id
+            ? game.client2
+            : game.client1;
+
+        const gameError = new Promise<GameErrorPayload>(function(resolve) {
+            noneActiveClient.once('game:error', resolve);
+        });
+
+        noneActiveClient.emit('game:eliminate');
+
+        const result = await gameError;
+
+        expect(result.message).toBe("Not your turn");
+
+        game.client1.disconnect();
+        game.client2.disconnect();
     });
 });

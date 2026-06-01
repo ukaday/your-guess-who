@@ -147,10 +147,16 @@ async function onGameEliminate(
         include: { players: true }
     });
 
+    if (socket.data.userId !== game.activePlayerId) {
+        socket.emit('game:error', { message: "Not your turn" });
+    }
+
     const playerIds = (game.players as [GamePlayer, GamePlayer]).map((p) => p.userId);
 
-    const newActivePlayerId = playerIds.find(playerId => playerId !== game.activePlayerId) as string;
+    const newActivePlayerId = playerIds[0] === game.activePlayerId
+        ? playerIds[1]
+        : playerIds[0];
 
-    game.activePlayerId = newActivePlayerId;
+    // update datebase game staet
     io.to(`game:${game.id}`).emit('game:active-player-changed', { activePlayerId: newActivePlayerId });
 }
