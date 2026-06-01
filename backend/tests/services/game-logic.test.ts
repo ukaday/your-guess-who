@@ -6,7 +6,7 @@ import {
     pickFirstPlayer,
     decideJoinOutcome,
     decideEliminateOutcome,
-    type EliminateDecisionGame
+    type EliminateDecisionGame,
 } from '../../src/services/game-logic.js';
 
 describe('selectSecretCards', () => {
@@ -127,34 +127,40 @@ describe('decideJoinOutcome', () => {
     });
 });
 
-describe('decideEliminateOutcome', function() {
+describe('decideEliminateOutcome', function () {
     const game: EliminateDecisionGame = {
         status: GameStatus.ACTIVE,
         activePlayerId: 'player-1',
         players: [{ userId: 'player-1' }, { userId: 'player-2' }],
     };
 
-    it('rejects if player is not active', function() {
+    it('rejects if player is not active', function () {
         const result = decideEliminateOutcome(game, 'player-2');
 
         expect(result).toEqual({ type: 'REJECT', message: 'Not your turn' });
     });
 
-    it('rejects if the game is not active', function() {
+    it('rejects if the game is not active', function () {
         const activeGame: EliminateDecisionGame = {
             status: GameStatus.LOBBY,
             activePlayerId: 'player-1',
             players: [{ userId: 'player-1' }, { userId: 'player-2' }],
-        }
+        };
 
         const result = decideEliminateOutcome(activeGame, 'player-1');
 
-        expect(result).toEqual({ type: 'REJECT', message: 'Game is not active' });
+        expect(result).toEqual({
+            type: 'REJECT',
+            message: 'Game is not active',
+        });
     });
 
-    it('advances turn and returns activePlayerId', function() {
+    it('advances turn and returns activePlayerId', function () {
         const result = decideEliminateOutcome(game, 'player-1');
 
-        expect(result).toEqual({ type: 'ADVANCE_TURN', nextActivePlayerId: 'player-2' });
+        expect(result).toEqual({
+            type: 'ADVANCE_TURN',
+            nextActivePlayerId: 'player-2',
+        });
     });
 });

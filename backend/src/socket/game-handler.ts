@@ -9,12 +9,12 @@ import type {
     GameJoinPayload,
     GameRemoteSocket,
     GameSnapshotPayload,
-    GameActivePlayerChangedPayload,
 } from '../types/socket.js';
 import {
     selectSecretCards,
     pickFirstPlayer,
     decideJoinOutcome,
+    decideEliminateOutcome,
 } from '../services/game-logic.js';
 
 export function registerGameHandlers(
@@ -162,24 +162,28 @@ async function onGameEliminate(
         return;
     }
 
-    if (socket.data.userId !== game.activePlayerId) {
-        socket.emit('game:error', { message: 'Not your turn' });
+    const players = game.players as [GamePlayer, GamePlayer];
+    const outcome = decideEliminateOutcome(
+        {
+            status: game.status,
+            activePlayerId: game.activePlayerId,
+            players,
+        },
+        socket.data.userId,
+    );
+
+    if (outcome.type === 'REJECT') {
+        socket.emit('game:error', { message: outcome.message });
 
         return;
     }
 
-    const [player1, player2] = game.players as [GamePlayer, GamePlayer];
-    const newActivePlayerId =
-        player1.userId === game.activePlayerId
-            ? player2.userId
-            : player1.userId;
-
     await prisma.game.update({
         where: { id: gameId },
-        data: { activePlayerId: newActivePlayerId },
+        data: { activePlayerId: outcome.nextActivePlayerId },
     });
 
     io.to(`game:${game.id}`).emit('game:active-player-changed', {
-        activePlayerId: newActivePlayerId,
+        activePlayerId: outcome.nextActivePlayerId,
     });
 }
