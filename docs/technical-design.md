@@ -223,17 +223,35 @@ All resources in single CDK app under `infrastructure/`. Stacks split by concern
 - Auto-scaling: min 1, max 5 instances
 - Health check: `GET /api/health`
 
-### RDS
+### NetworkStack
+
+- VPC across 2 AZs (RDS subnet group minimum)
+- Isolated subnets only — no public subnets, no NAT Gateway
+- App Runner reaches Cognito/S3 via its managed service plane (not through VPC), so no outbound internet from VPC required
+- Backend connects to RDS via App Runner VPC Connector (added in BackendStack)
+
+### DatabaseStack (RDS)
 
 - Engine: PostgreSQL 15
-- Instance: `db.t3.micro` (dev), `db.t3.small` (prod)
-- Credentials in Secrets Manager, referenced by App Runner env vars
+- Instance: `db.t3.micro` (dev — AWS Free Tier eligible)
+- Storage: 20 GB gp2, encrypted at rest (default KMS key), no autoscaling
+- Single AZ in dev (set `multiAz: true` for prod)
+- Backups: 1-day retention (AWS Free Tier caps backup retention at 1 day; bump to 7 once on a paid plan — tracked in Future Enhancements)
+- `deletionProtection: true`, `removalPolicy: SNAPSHOT` — destroying the stack creates a final snapshot
+- Credentials: `Credentials.fromGeneratedSecret('postgres')` — username `postgres`, password auto-generated, stored in Secrets Manager
+- Database name: `your_guess_who` (matches local Docker `.env`), port `5432`
+- Lives in NetworkStack's isolated subnets
+- Exposes (via constructor returns / `CfnOutput`): DB endpoint host, port, secret ARN, security group — consumed by BackendStack
 
-### S3 (images)
+### StorageStack (S3 images)
 
-- Private bucket, no public read
-- CORS allows PUT from frontend origin for pre-signed upload URLs
-- CloudFront NOT in front — images served via pre-signed GET URLs
+- Bucket name: `your-guess-who-images-${account}-${region}` (token-interpolated, stable across deploys)
+- `blockPublicAccess: BLOCK_ALL`, `encryption: S3_MANAGED`
+- Versioning enabled; lifecycle rule deletes non-current versions after 30 days
+- `removalPolicy: RETAIN` — `cdk destroy` keeps the bucket + contents
+- CORS: allow `PUT`/`GET`/`HEAD` from `http://localhost:5173` (frontend dev origin); add deployed FrontendStack origin when that stack lands
+- Frontend uploads images direct to S3 via pre-signed PUT URL minted by backend
+- Backend serves images via pre-signed GET URLs (no CloudFront in front)
 
 ### CloudFront (frontend)
 
@@ -294,6 +312,7 @@ Must pass before feature work begins on that layer. See `docs/bootstrap.md` for 
 - **Finished game cleanup** — completed games are kept indefinitely. Future: scheduled job to archive or delete games older than X days.
 - **Ack reliability on socket handlers** — handlers thread ack via `.then(() => ack?.())`. If the handler promise rejects, the `.then` is skipped and ack never fires — client `emitWithAck` hangs indefinitely. Future: switch to `.finally(() => ack?.())` so ack always fires regardless of handler outcome, and add an `emitWithAck` timeout on the client side as belt-and-suspenders.
 - **GameStatus enum usage** — status comparisons currently use string literals (`game.status === 'ACTIVE'`, `status: 'LOBBY'` in seeds). Refactor to use the generated `GameStatus` const (e.g., `game.status === GameStatus.ACTIVE`) so renames in `schema.prisma` propagate through TS at compile time instead of silently breaking at runtime.
+- **RDS backup retention bump** — currently 1 day (AWS Free Tier cap). Once the account upgrades off free tier, raise `backupRetention` to 7 days in `DatabaseStack` for better recovery window.
 - **`game:concede` event** — lets a player forfeit mid-game. Server-side: validate game ACTIVE + sender is a player; set `winnerId` to opponent, status → FINISHED; emit `game:over` to room (extend payload with `reason: 'CONCEDE' | 'GUESS'` so loser knows how the game ended). Skipped in MVP since the win condition (`game:guess`) covers game-end; concede is quality-of-life for stuck players.
 - **`game:over` reveal payload** — currently emits only `{ winnerId }`. Future: include both players' secret cards for end-of-game reveal UX (`{ winnerId, revealedCards: { [userId]: cardId } }`).
 

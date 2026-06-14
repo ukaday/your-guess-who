@@ -10,8 +10,7 @@
         "sourceMap": true,
         "strict": true,
         "skipLibCheck": true,
-        "noUncheckedIndexedAccess": true,
-        "exactOptionalPropertyTypes": true
+        "noUncheckedIndexedAccess": true
     },
-    "include": ["bin/**/*.ts", "lib/**/*.ts"]
+    "include": ["bin/**/*.ts", "lib/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
 }
