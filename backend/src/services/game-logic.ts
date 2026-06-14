@@ -52,12 +52,12 @@ export const decideJoinOutcome = (
         return { type: 'REJECT', message: 'Game not found' };
     }
 
-    if (userIdsInRoom.includes(userId)) {
-        return { type: 'REJECT', message: 'Already connected to this game' };
-    }
-
     if (game.status === 'ACTIVE') {
         return { type: 'REVEAL_CARD', cardId: player.secretCardId! };
+    }
+
+    if (userIdsInRoom.includes(userId)) {
+        return { type: 'REJECT', message: 'Already connected to this game' };
     }
 
     const uniquePlayersAfterJoin = new Set([...userIdsInRoom, userId]).size;
