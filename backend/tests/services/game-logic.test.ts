@@ -6,7 +6,9 @@ import {
     pickFirstPlayer,
     decideJoinOutcome,
     decideEliminateOutcome,
+    decideGuessOutcome,
     type EliminateDecisionGame,
+    type GuessDecisionGame,
 } from '../../src/services/game-logic.js';
 
 describe('selectSecretCards', () => {
@@ -161,6 +163,91 @@ describe('decideEliminateOutcome', function () {
         expect(result).toEqual({
             type: 'ADVANCE_TURN',
             nextActivePlayerId: 'player-2',
+        });
+    });
+
+    it('advances turn from player-2 to player-1', function () {
+        const gameP2Active: EliminateDecisionGame = {
+            status: GameStatus.ACTIVE,
+            activePlayerId: 'player-2',
+            players: [{ userId: 'player-1' }, { userId: 'player-2' }],
+        };
+
+        const result = decideEliminateOutcome(gameP2Active, 'player-2');
+
+        expect(result).toEqual({
+            type: 'ADVANCE_TURN',
+            nextActivePlayerId: 'player-1',
+        });
+    });
+});
+
+describe('decideGuessOutcome', function () {
+    const game: GuessDecisionGame = {
+        status: GameStatus.ACTIVE,
+        activePlayerId: 'player-1',
+        players: [
+            { userId: 'player-1', secretCardId: 'card-1' },
+            { userId: 'player-2', secretCardId: 'card-2' },
+        ],
+    };
+
+    it('rejects if player is not active', function () {
+        const result = decideGuessOutcome(game, 'player-2', 'card-1');
+
+        expect(result).toEqual({ type: 'REJECT', message: 'Not your turn' });
+    });
+
+    it('rejects if game is not active', function () {
+        const lobbyGame: GuessDecisionGame = {
+            status: GameStatus.LOBBY,
+            activePlayerId: 'player-1',
+            players: [
+                { userId: 'player-1', secretCardId: 'card-1' },
+                { userId: 'player-2', secretCardId: 'card-2' },
+            ],
+        };
+
+        const result = decideGuessOutcome(lobbyGame, 'player-1', 'card-2');
+
+        expect(result).toEqual({
+            type: 'REJECT',
+            message: 'Game is not active',
+        });
+    });
+
+    it('returns WIN when cardId matches opponent secret', function () {
+        const result = decideGuessOutcome(game, 'player-1', 'card-2');
+
+        expect(result).toEqual({ type: 'WIN', winnerId: 'player-1' });
+    });
+
+    it('returns WRONG when cardId does not match opponent secret', function () {
+        const result = decideGuessOutcome(game, 'player-1', 'card-99');
+
+        expect(result).toEqual({
+            type: 'WRONG',
+            nextActivePlayerId: 'player-2',
+            guessedCardId: 'card-99',
+        });
+    });
+
+    it('returns WRONG with player-1 as next when player-2 guesses wrong', function () {
+        const gameP2Active: GuessDecisionGame = {
+            status: GameStatus.ACTIVE,
+            activePlayerId: 'player-2',
+            players: [
+                { userId: 'player-1', secretCardId: 'card-1' },
+                { userId: 'player-2', secretCardId: 'card-2' },
+            ],
+        };
+
+        const result = decideGuessOutcome(gameP2Active, 'player-2', 'card-99');
+
+        expect(result).toEqual({
+            type: 'WRONG',
+            nextActivePlayerId: 'player-1',
+            guessedCardId: 'card-99',
         });
     });
 });

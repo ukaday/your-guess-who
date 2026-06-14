@@ -9,6 +9,8 @@ import type {
     GameYourCardPayload,
     GameErrorPayload,
     GameActivePlayerChangedPayload,
+    GameGuessWrongPayload,
+    GameOverPayload,
 } from '../../src/types/socket.js';
 
 type TestClient = Socket<ServerEvents, ClientEvents>;
@@ -170,6 +172,109 @@ describe('game:eliminate', function () {
         });
 
         noneActiveClient.emit('game:eliminate');
+
+        const result = await gameError;
+
+        expect(result.message).toBe('Not your turn');
+
+        game.client1.disconnect();
+        game.client2.disconnect();
+    });
+});
+
+describe('game:guess', function () {
+    let port: number;
+    let close: () => Promise<void>;
+
+    beforeAll(async function () {
+        ({ port, close } = await startTestServer());
+    });
+
+    afterAll(async function () {
+        await close();
+    });
+
+    afterEach(async function () {
+        await resetDb();
+    });
+
+    it('emits game:over with active player as winnerId when guess matches opponent secret', async function () {
+        const game = await startTwoPlayerGame(port);
+
+        const state = await game.started1;
+        const activePlayerId = state.activePlayerId!;
+        const activeClient =
+            activePlayerId === game.seeded.player1Id
+                ? game.client1
+                : game.client2;
+        const opponentCard =
+            activePlayerId === game.seeded.player1Id
+                ? await game.yourCard2
+                : await game.yourCard1;
+
+        const gameOver = new Promise<GameOverPayload>(function (resolve) {
+            activeClient.once('game:over', resolve);
+        });
+
+        activeClient.emit('game:guess', { cardId: opponentCard.cardId });
+
+        const result = await gameOver;
+
+        expect(result.winnerId).toBe(activePlayerId);
+
+        game.client1.disconnect();
+        game.client2.disconnect();
+    });
+
+    it('emits game:guess-wrong with new activePlayerId and guessedCardId when guess is wrong', async function () {
+        const game = await startTwoPlayerGame(port);
+
+        const state = await game.started1;
+        const activePlayerId = state.activePlayerId!;
+        const activeClient =
+            activePlayerId === game.seeded.player1Id
+                ? game.client1
+                : game.client2;
+        const inactivePlayerId =
+            activePlayerId === game.seeded.player1Id
+                ? game.seeded.player2Id
+                : game.seeded.player1Id;
+        const ownCard =
+            activePlayerId === game.seeded.player1Id
+                ? await game.yourCard1
+                : await game.yourCard2;
+
+        const guessWrong = new Promise<GameGuessWrongPayload>(
+            function (resolve) {
+                activeClient.once('game:guess-wrong', resolve);
+            },
+        );
+
+        activeClient.emit('game:guess', { cardId: ownCard.cardId });
+
+        const result = await guessWrong;
+
+        expect(result.activePlayerId).toBe(inactivePlayerId);
+        expect(result.guessedCardId).toBe(ownCard.cardId);
+
+        game.client1.disconnect();
+        game.client2.disconnect();
+    });
+
+    it('emits game:error when non-active player tries to guess', async function () {
+        const game = await startTwoPlayerGame(port);
+
+        const state = await game.started1;
+        const inactiveClient =
+            state.activePlayerId === game.seeded.player1Id
+                ? game.client2
+                : game.client1;
+
+        const gameError = new Promise<GameErrorPayload>(function (resolve) {
+            inactiveClient.once('game:error', resolve);
+        });
+
+        inactiveClient.emit('game:guess', { cardId: 'any-card' });
 
         const result = await gameError;
 

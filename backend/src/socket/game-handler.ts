@@ -26,7 +26,7 @@ export function registerGameHandlers(
         void onGameJoin(io, socket, prisma, payload).then(() => ack?.());
     });
 
-    socket.on('game:eliminate', function () {
+    socket.on('game:eliminate', function() {
         void onGameEliminate(io, socket, prisma);
     });
 }

@@ -21,6 +21,20 @@ export type EliminateDecisionGame = {
     players: [{ userId: string }, { userId: string }];
 };
 
+export type GuessOutcome =
+    | { type: 'REJECT'; message: string }
+    | { type: 'WIN'; winnerId: string }
+    | { type: 'WRONG'; nextActivePlayerId: string; guessedCardId: string };
+
+export type GuessDecisionGame = {
+    status: GameStatus;
+    activePlayerId: string | null;
+    players: [
+        { userId: string; secretCardId: string | null },
+        { userId: string; secretCardId: string | null },
+    ];
+};
+
 export const selectSecretCards = (cards: Card[]): [Card, Card] => {
     if (cards.length < 2) {
         throw new Error('Input card list contains less than two cards');
@@ -87,4 +101,31 @@ export function decideEliminateOutcome(
             : game.players[0].userId;
 
     return { type: 'ADVANCE_TURN', nextActivePlayerId: newActivePlayerId };
+}
+
+export function decideGuessOutcome(
+    game: GuessDecisionGame,
+    userId: string,
+    cardId: string,
+): GuessOutcome {
+    if (game.activePlayerId !== userId) {
+        return { type: 'REJECT', message: 'Not your turn' };
+    }
+
+    if (game.status !== GameStatus.ACTIVE) {
+        return { type: 'REJECT', message: 'Game is not active' };
+    }
+
+    const [p1, p2] = game.players;
+    const opponent = p1.userId === userId ? p2 : p1;
+
+    if (opponent.secretCardId === cardId) {
+        return { type: 'WIN', winnerId: userId };
+    }
+
+    return {
+        type: 'WRONG',
+        nextActivePlayerId: opponent.userId,
+        guessedCardId: cardId,
+    };
 }

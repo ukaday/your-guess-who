@@ -46,8 +46,8 @@ ECR (backend Docker images)
 
 One shared socket, init on game join, torn down on leave. Events:
 
-- **Emit**: `game:join`, `game:eliminate`, `game:guess`, `game:concede`
-- **Listen**: `game:started`, `game:your-card`, `game:turn-ended`, `game:over`, `game:opponent-disconnected`, `game:opponent-reconnected`, `game:error`
+- **Emit**: `game:join`, `game:eliminate`, `game:guess`
+- **Listen**: `game:started`, `game:your-card`, `game:active-player-changed`, `game:guess-wrong`, `game:over`, `game:opponent-disconnected`, `game:opponent-reconnected`, `game:error`
 
 ### Image Uploads
 
@@ -109,16 +109,15 @@ All routes prefixed `/api`.
 
 Socket.io runs alongside Express on same HTTP server. Each game gets own room (`game:<id>`).
 
-Per-socket state: `socket.data` holds `{ userId, gameId? }`. `userId` set by auth middleware on connect. `gameId` set on successful `game:join` so later events (`game:eliminate`, `game:guess`, `game:concede`) derive game context from the socket rather than from each payload.
+Per-socket state: `socket.data` holds `{ userId, gameId? }`. `userId` set by auth middleware on connect. `gameId` set on successful `game:join` so later events (`game:eliminate`, `game:guess`) derive game context from the socket rather than from each payload.
 
 **Server-side events handled**:
 
 | Event            | Payload                 | Action                                                                                      |
 |------------------|-------------------------|---------------------------------------------------------------------------------------------|
 | `game:join`      | `{ gameId }`            | Verify user is a `GamePlayer` for this game, join socket room, store `gameId` in `socket.data.gameId` (used by subsequent events). Re-emit `game:your-card` + full game state to that socket (handles reconnect). If both players now in room and game is LOBBY: randomly assign secret cards, randomly pick first `activePlayerId`, set status → ACTIVE, emit `game:started` to room + `game:your-card` to each socket individually |
-| `game:eliminate` | —                       | Validate game ACTIVE + sender is `activePlayerId`; advance `activePlayerId` to opponent; emit `game:turn-ended` to room. (Future: `{ cardIds }` payload for visible opponent board feature — not in MVP) |
-| `game:guess`     | `{ cardId }`            | Validate game ACTIVE + sender is `activePlayerId`. Correct (`cardId` === opponent's `secretCardId`): set `winnerId`, status → FINISHED, emit `game:over` to room with both secret cards revealed. Wrong: advance `activePlayerId` to opponent, emit `game:turn-ended` with `guessedCardId` so guesser can eliminate it locally |
-| `game:concede`   | —                       | Validate game ACTIVE + sender is a player; set `winnerId` to opponent, status → FINISHED; emit `game:over` to room |
+| `game:eliminate` | —                       | Validate game ACTIVE + sender is `activePlayerId`; advance `activePlayerId` to opponent; emit `game:active-player-changed` to room. (Future: `{ cardIds }` payload for visible opponent board feature — not in MVP) |
+| `game:guess`     | `{ cardId }`            | Validate game ACTIVE + sender is `activePlayerId`. Correct (`cardId` === opponent's `secretCardId`): set `winnerId`, status → FINISHED, emit `game:over` to room. Wrong: advance `activePlayerId` to opponent, emit `game:guess-wrong` to room with `guessedCardId` so clients can eliminate it locally |
 
 **Server-emitted events**:
 
@@ -126,8 +125,9 @@ Per-socket state: `socket.data` holds `{ userId, gameId? }`. `userId` set by aut
 |----------------------------|---------|--------------------------------------------------|
 | `game:started`             | room    | Full game state (no secret cards)                |
 | `game:your-card`           | socket  | `{ cardId }` — sent individually, never to room |
-| `game:turn-ended`          | room    | `{ activePlayerId, guessedCardId? }` (`guessedCardId` set only after wrong guess)  |
-| `game:over`                | room    | `{ winnerId, reason, revealedCards }`            |
+| `game:active-player-changed` | room  | `{ activePlayerId }` — emitted after `game:eliminate` |
+| `game:guess-wrong`         | room    | `{ activePlayerId, guessedCardId }` — emitted after wrong `game:guess` |
+| `game:over`                | room    | `{ winnerId }`                                   |
 | `game:opponent-disconnected` | room  | —                                                |
 | `game:opponent-reconnected`  | room  | —                                                |
 | `game:error`               | socket  | `{ message }` — dev: full error, prod: generic  |
@@ -294,6 +294,8 @@ Must pass before feature work begins on that layer. See `docs/bootstrap.md` for 
 - **Finished game cleanup** — completed games are kept indefinitely. Future: scheduled job to archive or delete games older than X days.
 - **Ack reliability on socket handlers** — handlers thread ack via `.then(() => ack?.())`. If the handler promise rejects, the `.then` is skipped and ack never fires — client `emitWithAck` hangs indefinitely. Future: switch to `.finally(() => ack?.())` so ack always fires regardless of handler outcome, and add an `emitWithAck` timeout on the client side as belt-and-suspenders.
 - **GameStatus enum usage** — status comparisons currently use string literals (`game.status === 'ACTIVE'`, `status: 'LOBBY'` in seeds). Refactor to use the generated `GameStatus` const (e.g., `game.status === GameStatus.ACTIVE`) so renames in `schema.prisma` propagate through TS at compile time instead of silently breaking at runtime.
+- **`game:concede` event** — lets a player forfeit mid-game. Server-side: validate game ACTIVE + sender is a player; set `winnerId` to opponent, status → FINISHED; emit `game:over` to room (extend payload with `reason: 'CONCEDE' | 'GUESS'` so loser knows how the game ended). Skipped in MVP since the win condition (`game:guess`) covers game-end; concede is quality-of-life for stuck players.
+- **`game:over` reveal payload** — currently emits only `{ winnerId }`. Future: include both players' secret cards for end-of-game reveal UX (`{ winnerId, revealedCards: { [userId]: cardId } }`).
 
 ## Future Features
 
