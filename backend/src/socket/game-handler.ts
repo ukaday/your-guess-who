@@ -7,6 +7,7 @@ import type {
     GameSocket,
     GameServer,
     GameJoinPayload,
+    GameGuessPayload,
     GameRemoteSocket,
     GameSnapshotPayload,
 } from '../types/socket.js';
@@ -15,6 +16,7 @@ import {
     pickFirstPlayer,
     decideJoinOutcome,
     decideEliminateOutcome,
+    decideGuessOutcome,
 } from '../services/game-logic.js';
 
 export function registerGameHandlers(
@@ -26,8 +28,16 @@ export function registerGameHandlers(
         void onGameJoin(io, socket, prisma, payload).then(() => ack?.());
     });
 
-    socket.on('game:eliminate', function() {
+    socket.on('game:eliminate', function () {
         void onGameEliminate(io, socket, prisma);
+    });
+
+    socket.on('game:guess', function (payload) {
+        void onGameGuess(io, socket, prisma, payload);
+    });
+
+    socket.on('disconnect', function () {
+        onSocketDisconnect(socket);
     });
 }
 
@@ -65,6 +75,7 @@ async function onGameJoin(
 
     if (outcome.type === 'REVEAL_CARD') {
         socket.emit('game:your-card', { cardId: outcome.cardId });
+        socket.to(roomName).emit('game:opponent-reconnected');
 
         return;
     }
@@ -186,4 +197,80 @@ async function onGameEliminate(
     io.to(`game:${game.id}`).emit('game:active-player-changed', {
         activePlayerId: outcome.nextActivePlayerId,
     });
+}
+
+async function onGameGuess(
+    io: GameServer,
+    socket: GameSocket,
+    prisma: PrismaClient,
+    payload: GameGuessPayload,
+) {
+    const gameId = socket.data.gameId;
+
+    if (!gameId) {
+        socket.emit('game:error', { message: 'Game not found' });
+
+        return;
+    }
+
+    const game = await prisma.game.findUnique({
+        where: { id: gameId },
+        include: { players: true },
+    });
+
+    if (!game) {
+        socket.emit('game:error', { message: 'Game not found' });
+
+        return;
+    }
+
+    const players = game.players as [GamePlayer, GamePlayer];
+    const outcome = decideGuessOutcome(
+        {
+            status: game.status,
+            activePlayerId: game.activePlayerId,
+            players,
+        },
+        socket.data.userId,
+        payload.cardId,
+    );
+
+    if (outcome.type === 'REJECT') {
+        socket.emit('game:error', { message: outcome.message });
+
+        return;
+    }
+
+    const roomName = `game:${gameId}`;
+
+    if (outcome.type === 'WIN') {
+        await prisma.game.update({
+            where: { id: gameId },
+            data: { status: 'FINISHED', winnerId: outcome.winnerId },
+        });
+
+        io.to(roomName).emit('game:over', { winnerId: outcome.winnerId });
+
+        return;
+    }
+
+    await prisma.game.update({
+        where: { id: gameId },
+        data: { activePlayerId: outcome.nextActivePlayerId },
+    });
+
+    io.to(roomName).emit('game:guess-wrong', {
+        activePlayerId: outcome.nextActivePlayerId,
+        guessedCardId: outcome.guessedCardId,
+    });
+}
+
+function onSocketDisconnect(socket: GameSocket) {
+    const gameId = socket.data.gameId;
+
+    if (!gameId) {
+        return;
+    }
+
+    socket.to(`game:${gameId}`).emit('game:opponent-disconnected');
 }

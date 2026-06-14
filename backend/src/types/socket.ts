@@ -20,6 +20,8 @@ export type ServerEvents = {
     ) => void;
     'game:guess-wrong': (payload: GameGuessWrongPayload) => void;
     'game:over': (payload: GameOverPayload) => void;
+    'game:opponent-disconnected': () => void;
+    'game:opponent-reconnected': () => void;
 };
 
 export type GameServer = Server<

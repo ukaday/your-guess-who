@@ -284,3 +284,73 @@ describe('game:guess', function () {
         game.client2.disconnect();
     });
 });
+
+describe('disconnect / reconnect', function () {
+    let port: number;
+    let close: () => Promise<void>;
+
+    beforeAll(async function () {
+        ({ port, close } = await startTestServer());
+    });
+
+    afterAll(async function () {
+        await close();
+    });
+
+    afterEach(async function () {
+        await resetDb();
+    });
+
+    it('emits game:opponent-disconnected to remaining client when one client disconnects', async function () {
+        const game = await startTwoPlayerGame(port);
+
+        await Promise.all([game.started1, game.started2]);
+
+        const opponentDisconnected = new Promise<void>(function (resolve) {
+            game.client2.once('game:opponent-disconnected', function () {
+                resolve();
+            });
+        });
+
+        game.client1.disconnect();
+
+        await opponentDisconnected;
+
+        game.client2.disconnect();
+    });
+
+    it('emits game:opponent-reconnected to remaining client when player rejoins ACTIVE game', async function () {
+        const game = await startTwoPlayerGame(port);
+
+        await Promise.all([game.started1, game.started2]);
+
+        const opponentDisconnected = new Promise<void>(function (resolve) {
+            game.client2.once('game:opponent-disconnected', function () {
+                resolve();
+            });
+        });
+
+        game.client1.disconnect();
+        await opponentDisconnected;
+
+        const opponentReconnected = new Promise<void>(function (resolve) {
+            game.client2.once('game:opponent-reconnected', function () {
+                resolve();
+            });
+        });
+
+        const reconnectClient: TestClient = Client(
+            `http://localhost:${port}`,
+            { auth: { token: game.seeded.player1Id } },
+        );
+
+        await reconnectClient.emitWithAck('game:join', {
+            gameId: game.seeded.gameId,
+        });
+
+        await opponentReconnected;
+
+        reconnectClient.disconnect();
+        game.client2.disconnect();
+    });
+});
