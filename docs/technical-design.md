@@ -216,12 +216,17 @@ All resources in single CDK app under `infrastructure/`. Stacks split by concern
 | `BackendStack`     | ECR repo, App Runner service                           |
 | `FrontendStack`    | S3 bucket (static hosting) + CloudFront distribution  |
 
-### App Runner
+### BackendStack (App Runner + ECR)
 
-- Pulls image from ECR on deploy
-- Env vars injected at deploy: `DATABASE_URL`, `S3_BUCKET`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`
-- Auto-scaling: min 1, max 5 instances
-- Health check: `GET /api/health`
+- **ECR repo** `your-guess-who-backend` — App Runner pulls `latest` tag
+- **VPC connector** — places service ENIs in `NetworkStack` isolated subnets so it can reach RDS
+- **Security group ingress** — adds `tcp/5432` rule on RDS SG from the connector SG, defined inside `BackendStack` (creating the rule on the DB side would form a dependency cycle: `DatabaseStack ↔ BackendStack`)
+- **Env vars** — `S3_BUCKET`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `DB_HOST`, `DB_PORT`, `DB_NAME` (`your_guess_who`)
+- **Runtime secrets** — `DB_USERNAME`, `DB_PASSWORD` pulled from the RDS Secrets Manager secret (`username` + `password` fields). Backend assembles `DATABASE_URL` at startup. (Backend `env.ts` still needs updating to consume the split values — tracked in Future Enhancements until done.)
+- **Health check** — `HTTP GET /api/health`
+- **Auto-scaling** — min 1, max 5 (AppRunner `AutoScalingConfiguration` resource)
+- **IAM** — `bucket.grantReadWrite(service)` attaches S3 RW to the App Runner instance role; Secrets Manager read grants come from the `Secret.fromSecretsManager` helper automatically
+- **Deploy order** — `cdk deploy BackendStack` creates the repo + service skeleton, but the service stays in `CREATE_FAILED` until a backend image is pushed to the ECR repo. Push the image, then App Runner picks it up on the next deploy or manual `StartDeployment`
 
 ### NetworkStack
 
@@ -313,6 +318,7 @@ Must pass before feature work begins on that layer. See `docs/bootstrap.md` for 
 - **Ack reliability on socket handlers** — handlers thread ack via `.then(() => ack?.())`. If the handler promise rejects, the `.then` is skipped and ack never fires — client `emitWithAck` hangs indefinitely. Future: switch to `.finally(() => ack?.())` so ack always fires regardless of handler outcome, and add an `emitWithAck` timeout on the client side as belt-and-suspenders.
 - **GameStatus enum usage** — status comparisons currently use string literals (`game.status === 'ACTIVE'`, `status: 'LOBBY'` in seeds). Refactor to use the generated `GameStatus` const (e.g., `game.status === GameStatus.ACTIVE`) so renames in `schema.prisma` propagate through TS at compile time instead of silently breaking at runtime.
 - **RDS backup retention bump** — currently 1 day (AWS Free Tier cap). Once the account upgrades off free tier, raise `backupRetention` to 7 days in `DatabaseStack` for better recovery window.
+- **Backend env.ts split DB config** — backend currently expects a single `DATABASE_URL`. `BackendStack` injects `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` separately. Update `src/lib/env.ts` to read these and assemble the URL (`postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`) at startup so the deployed service can connect to RDS.
 - **`game:concede` event** — lets a player forfeit mid-game. Server-side: validate game ACTIVE + sender is a player; set `winnerId` to opponent, status → FINISHED; emit `game:over` to room (extend payload with `reason: 'CONCEDE' | 'GUESS'` so loser knows how the game ended). Skipped in MVP since the win condition (`game:guess`) covers game-end; concede is quality-of-life for stuck players.
 - **`game:over` reveal payload** — currently emits only `{ winnerId }`. Future: include both players' secret cards for end-of-game reveal UX (`{ winnerId, revealedCards: { [userId]: cardId } }`).
 
