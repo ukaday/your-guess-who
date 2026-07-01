@@ -1,9 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import { AuthStack } from '../lib/auth-stack.js';
 import { NetworkStack } from '../lib/network-stack.js';
 import { DatabaseStack } from '../lib/database-stack.js';
 import { StorageStack } from '../lib/storage-stack.js';
 import { BackendStack } from '../lib/backend-stack.js';
+import { FrontendStack } from '../lib/frontend-stack.js';
 
 const app = new cdk.App();
 
@@ -20,11 +22,30 @@ const database = new DatabaseStack(app, 'DatabaseStack', {
 });
 const storage = new StorageStack(app, 'StorageStack', { env });
 
-new BackendStack(app, 'BackendStack', {
+const backend = new BackendStack(app, 'BackendStack', {
     env,
     vpc: network.vpc,
     dbInstance: database.instance,
     bucket: storage.bucket,
     userPool: auth.userPool,
     userPoolClient: auth.userPoolClient,
+});
+
+const frontendSources = [
+    s3deploy.Source.asset('../frontend', {
+        bundling: {
+            image: cdk.DockerImage.fromRegistry('node:22-alpine'),
+            command: [
+                'sh',
+                '-c',
+                'npm ci && npm run build && cp -r dist/. /asset-output/',
+            ],
+        },
+    }),
+];
+
+new FrontendStack(app, 'FrontendStack', {
+    env,
+    apiService: backend.service,
+    frontendSources,
 });

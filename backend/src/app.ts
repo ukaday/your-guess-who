@@ -28,7 +28,7 @@ export const createApp = (
 
     app.use(cors({ origin: corsOrigin }));
     app.use(express.json());
-    app.use('/api/health', createHealthRouter(prisma));
+    app.use('/api/health', createHealthRouter());
     app.use('/api/auth', createAuthRouter(prisma, cognito));
     app.use('/api/decks', createDeckRouter(prisma, authMiddleware));
     app.use('/api/decks', createCardRouter(prisma, authMiddleware));

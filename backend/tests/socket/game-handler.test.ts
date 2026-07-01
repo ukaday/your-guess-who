@@ -244,11 +244,11 @@ describe('game:guess', function () {
                 ? await game.yourCard1
                 : await game.yourCard2;
 
-        const guessWrong = new Promise<GameGuessWrongPayload>(
-            function (resolve) {
-                activeClient.once('game:guess-wrong', resolve);
-            },
-        );
+        const guessWrong = new Promise<GameGuessWrongPayload>(function (
+            resolve,
+        ) {
+            activeClient.once('game:guess-wrong', resolve);
+        });
 
         activeClient.emit('game:guess', { cardId: ownCard.cardId });
 
@@ -339,10 +339,9 @@ describe('disconnect / reconnect', function () {
             });
         });
 
-        const reconnectClient: TestClient = Client(
-            `http://localhost:${port}`,
-            { auth: { token: game.seeded.player1Id } },
-        );
+        const reconnectClient: TestClient = Client(`http://localhost:${port}`, {
+            auth: { token: game.seeded.player1Id },
+        });
 
         await reconnectClient.emitWithAck('game:join', {
             gameId: game.seeded.gameId,

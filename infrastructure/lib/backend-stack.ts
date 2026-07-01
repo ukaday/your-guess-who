@@ -9,14 +9,14 @@ import type { Construct } from 'constructs';
 
 export interface BackendStackProps extends cdk.StackProps {
     vpc: ec2.IVpc;
-    dbInstance: rds.IDatabaseInstance;
+    dbInstance: rds.DatabaseInstance;
     bucket: s3.IBucket;
     userPool: cognito.IUserPool;
     userPoolClient: cognito.IUserPoolClient;
 }
 
 export class BackendStack extends cdk.Stack {
-    readonly repository: ecr.Repository;
+    readonly repository: ecr.IRepository;
     readonly service: apprunner.Service;
     readonly vpcConnector: apprunner.VpcConnector;
 
@@ -25,7 +25,7 @@ export class BackendStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: BackendStackProps) {
         super(scope, id, props);
 
-        this.repository = this.createRepository();
+        this.repository = this.importRepository();
         this.vpcConnector = this.createVpcConnector(props.vpc);
         this.autoScalingConfiguration = this.createAutoScalingConfiguration();
         this.service = this.createService(props);
@@ -33,10 +33,12 @@ export class BackendStack extends cdk.Stack {
         props.bucket.grantReadWrite(this.service);
     }
 
-    private createRepository(): ecr.Repository {
-        return new ecr.Repository(this, 'Repository', {
-            repositoryName: 'your-guess-who-backend',
-        });
+    private importRepository(): ecr.IRepository {
+        return ecr.Repository.fromRepositoryName(
+            this,
+            'Repository',
+            'your-guess-who-backend',
+        );
     }
 
     private createVpcConnector(vpc: ec2.IVpc): apprunner.VpcConnector {
@@ -54,7 +56,10 @@ export class BackendStack extends cdk.Stack {
                 repository: this.repository,
                 tagOrDigest: 'latest',
                 imageConfiguration: {
+                    port: 3000,
                     environmentVariables: {
+                        PORT: '3000',
+                        FRONTEND_ORIGIN: '*',
                         S3_BUCKET: props.bucket.bucketName,
                         COGNITO_USER_POOL_ID: props.userPool.userPoolId,
                         COGNITO_CLIENT_ID: props.userPoolClient.userPoolClientId,
@@ -77,6 +82,10 @@ export class BackendStack extends cdk.Stack {
             vpcConnector: this.vpcConnector,
             healthCheck: apprunner.HealthCheck.http({
                 path: '/api/health',
+                timeout: cdk.Duration.seconds(10),
+                interval: cdk.Duration.seconds(10),
+                healthyThreshold: 1,
+                unhealthyThreshold: 5,
             }),
             autoScalingConfiguration: this.autoScalingConfiguration,
         });
@@ -90,7 +99,7 @@ export class BackendStack extends cdk.Stack {
     }
 
     private allowConnectorToReachDatabase(
-        dbInstance: rds.IDatabaseInstance,
+        dbInstance: rds.DatabaseInstance,
     ): void {
         const dbSecurityGroup = dbInstance.connections.securityGroups[0]!;
         const connectorSecurityGroup =

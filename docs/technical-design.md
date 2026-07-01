@@ -55,7 +55,7 @@ Card images upload direct to S3 via pre-signed URL from backend. Frontend never 
 
 ### Build & Hosting
 
-Vite builds static bundle → S3, served via CloudFront. `VITE_API_URL` set at build time from env var.
+Vite builds static bundle → S3, served via CloudFront. Same CloudFront fronts the backend at `/api/*` + `/socket.io/*` (path-based routing to App Runner) — frontend hits `/api/...` directly with no `VITE_API_URL` env needed in prod. Local dev uses Vite proxy `/api` → `http://localhost:3000`.
 
 ---
 
@@ -214,14 +214,14 @@ All resources in single CDK app under `infrastructure/`. Stacks split by concern
 | `StorageStack`     | S3 bucket for card images (private, CORS for uploads)  |
 | `AuthStack`        | Cognito User Pool + App Client                         |
 | `BackendStack`     | ECR repo, App Runner service                           |
-| `FrontendStack`    | S3 bucket (static hosting) + CloudFront distribution  |
+| `FrontendStack`    | S3 bucket (private) + CloudFront distribution fronting both frontend assets and backend API |
 
 ### BackendStack (App Runner + ECR)
 
 - **ECR repo** `your-guess-who-backend` — App Runner pulls `latest` tag
 - **VPC connector** — places service ENIs in `NetworkStack` isolated subnets so it can reach RDS
 - **Security group ingress** — adds `tcp/5432` rule on RDS SG from the connector SG, defined inside `BackendStack` (creating the rule on the DB side would form a dependency cycle: `DatabaseStack ↔ BackendStack`)
-- **Env vars** — `S3_BUCKET`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `DB_HOST`, `DB_PORT`, `DB_NAME` (`your_guess_who`)
+- **Env vars** — `S3_BUCKET`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `DB_HOST`, `DB_PORT`, `DB_NAME` (`your_guess_who`), `PORT` (`3000`), `FRONTEND_ORIGIN` (`*` — unused once CloudFront same-origins front+back)
 - **Runtime secrets** — `DB_USERNAME`, `DB_PASSWORD` pulled from the RDS Secrets Manager secret (`username` + `password` fields). Backend assembles `DATABASE_URL` at startup. (Backend `env.ts` still needs updating to consume the split values — tracked in Future Enhancements until done.)
 - **Health check** — `HTTP GET /api/health`
 - **Auto-scaling** — min 1, max 5 (AppRunner `AutoScalingConfiguration` resource)
@@ -254,16 +254,46 @@ All resources in single CDK app under `infrastructure/`. Stacks split by concern
 - `blockPublicAccess: BLOCK_ALL`, `encryption: S3_MANAGED`
 - Versioning enabled; lifecycle rule deletes non-current versions after 30 days
 - `removalPolicy: RETAIN` — `cdk destroy` keeps the bucket + contents
-- CORS: allow `PUT`/`GET`/`HEAD` from `http://localhost:5173` (frontend dev origin); add deployed FrontendStack origin when that stack lands
+- CORS: allow `PUT`/`GET`/`HEAD` from `http://localhost:5173` (frontend dev origin) plus deployed CloudFront origin (frontend uploads via pre-signed PUT URL — direct S3 PUT bypasses CloudFront)
 - Frontend uploads images direct to S3 via pre-signed PUT URL minted by backend
 - Backend serves images via pre-signed GET URLs (no CloudFront in front)
 
-### CloudFront (frontend)
+### FrontendStack (S3 + CloudFront)
 
-- Origin: S3 static hosting bucket
-- Default root: `index.html`
-- Custom error: 404 → `index.html` (enables Vue Router history mode)
-- Cache: long TTL on hashed assets, short TTL on `index.html`
+Single CloudFront distribution fronts both the SPA bundle (S3 origin) and the backend API (App Runner origin). Same-origin model — no CORS, no third-party cookies, no `FRONTEND_ORIGIN` plumbing.
+
+**S3 bucket**
+- `blockPublicAccess: BLOCK_ALL`, `encryption: S3_MANAGED`
+- `removalPolicy: DESTROY` + `autoDeleteObjects: true` — bundle is reproducible from source
+- No versioning, no logging
+- Accessed only by CloudFront via Origin Access Control (OAC, not legacy OAI)
+
+**CloudFront distribution**
+- `defaultRootObject: 'index.html'`
+- `priceClass: PRICE_CLASS_100` (US/CA/EU edges)
+- `httpVersion: HTTP2_AND_3`
+- No WAF
+- All viewer requests `REDIRECT_TO_HTTPS`, `compress: true`
+- **Two origins, three behaviors:**
+    - `/api/*` → App Runner `HttpOrigin` — `CACHING_DISABLED`, `ALLOW_ALL` HTTP methods, forward all headers + cookies (origin request policy `ALL_VIEWER`)
+    - `/socket.io/*` → same App Runner origin — same policies (WebSocket upgrade flows through)
+    - default `/*` → S3 origin via OAC — `CACHING_OPTIMIZED` managed policy
+- **SPA routing**: `errorResponses` rewrite 403 + 404 → `/index.html` with status 200, TTL 0 (Vue Router takes over client-side)
+
+**Deployment**
+- `BucketDeployment` with Docker bundling — `node:22` image runs `npm ci && npm run build` against the `frontend/` source at synth time (reproducible deploys, dev still uses `npm run dev`)
+- Two `Source` entries for tiered cache headers:
+    - `dist/assets/**` → `Cache-Control: public, max-age=31536000, immutable` (Vite content-hashed)
+    - everything else (incl. `index.html`) → `Cache-Control: public, max-age=60, stale-while-revalidate=2592000`
+- `prune: true`
+- No CloudFront invalidation step — cache headers handle freshness, saves API cost
+
+**Cross-stack**
+- `FrontendStack` imports `apprunner.Service` from `BackendStack` to build the API `HttpOrigin` — single dependency edge `Frontend → Backend`
+- Deploy order: `BackendStack` first (creates App Runner URL), then `FrontendStack`
+
+**Outputs**
+- `CfnOutput` for CloudFront distribution domain (the public app URL)
 
 ---
 

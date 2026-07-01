@@ -47,7 +47,7 @@ function makeDeps() {
 }
 
 describe('BackendStack', function () {
-    it('creates an ECR repository', function () {
+    it('imports the existing ECR repository (does not create one)', function () {
         const deps = makeDeps();
         const stack = new BackendStack(deps.app, 'TestBackend', {
             env: testEnv,
@@ -58,7 +58,7 @@ describe('BackendStack', function () {
             userPoolClient: deps.userPoolClient,
         });
 
-        Template.fromStack(stack).resourceCountIs('AWS::ECR::Repository', 1);
+        Template.fromStack(stack).resourceCountIs('AWS::ECR::Repository', 0);
     });
 
     it('creates an App Runner service backed by the ECR image', function () {
@@ -118,6 +118,8 @@ describe('BackendStack', function () {
                     ImageRepository: Match.objectLike({
                         ImageConfiguration: Match.objectLike({
                             RuntimeEnvironmentVariables: Match.arrayWith([
+                                Match.objectLike({ Name: 'PORT' }),
+                                Match.objectLike({ Name: 'FRONTEND_ORIGIN' }),
                                 Match.objectLike({ Name: 'S3_BUCKET' }),
                                 Match.objectLike({
                                     Name: 'COGNITO_USER_POOL_ID',

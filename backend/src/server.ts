@@ -44,6 +44,6 @@ io.on('connection', (socket) => {
     });
 });
 
-httpServer.listen(env.PORT, () => {
+httpServer.listen(Number(env.PORT), '0.0.0.0', () => {
     console.log(`server running on port ${env.PORT}`);
 });
