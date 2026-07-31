@@ -6,6 +6,7 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { errorToMessage } from '../utils/error-to-message.js';
+import { HttpError } from '../utils/http-error.js';
 
 export const signUpWithCognito = async (
     cognito: CognitoIdentityProviderClient,
@@ -78,7 +79,7 @@ export const createAuthService = (
             clientId,
             username,
             password,
-        );
+        ).catch(rethrowAsHttpError);
 
         try {
             await createDbUser(prisma, userSub);
@@ -97,6 +98,46 @@ export const createAuthService = (
     },
 
     login: async (username: string, password: string): Promise<string> => {
-        return authenticateWithCognito(cognito, clientId, username, password);
+        return authenticateWithCognito(
+            cognito,
+            clientId,
+            username,
+            password,
+        ).catch(rethrowAsHttpError);
     },
 });
+
+const cognitoErrorResponses: Record<
+    string,
+    { status: number; message: string }
+> = {
+    UsernameExistsException: {
+        status: 409,
+        message: 'Username already taken',
+    },
+    InvalidPasswordException: {
+        status: 400,
+        message: 'Password does not meet requirements',
+    },
+    InvalidParameterException: {
+        status: 400,
+        message: 'Invalid username or password format',
+    },
+    NotAuthorizedException: {
+        status: 401,
+        message: 'Incorrect username or password',
+    },
+    UserNotFoundException: {
+        status: 401,
+        message: 'Incorrect username or password',
+    },
+};
+
+const rethrowAsHttpError = (err: unknown): never => {
+    const response =
+        err instanceof Error ? cognitoErrorResponses[err.name] : undefined;
+
+    if (!response) throw err;
+
+    throw new HttpError(response.status, response.message);
+};

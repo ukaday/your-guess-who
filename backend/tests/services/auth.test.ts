@@ -6,12 +6,35 @@ import {
     rollbackCognitoUser,
     signUpWithCognito,
 } from '../../src/services/auth.js';
+import { HttpError } from '../../src/utils/http-error.js';
 
 const CLIENT_ID = 'client-id';
 const USER_POOL_ID = 'pool-id';
 
 const makeCognito = () => ({ send: vi.fn() });
 const makePrisma = () => ({ user: { create: vi.fn() } });
+const cognitoError = (name: string) =>
+    Object.assign(new Error('cognito internal detail'), { name });
+
+const captureLoginError = (
+    cognito: ReturnType<typeof makeCognito>,
+    username: string,
+    password: string,
+) =>
+    createAuthService(
+        makePrisma() as never,
+        cognito as never,
+        CLIENT_ID,
+        USER_POOL_ID,
+    )
+        .login(username, password)
+        .then(
+            () => null,
+            (err: unknown) =>
+                err instanceof HttpError
+                    ? { status: err.status, message: err.message }
+                    : null,
+        );
 
 describe('signUpWithCognito', () => {
     it('returns user sub on success', async () => {
@@ -183,6 +206,46 @@ describe('register', () => {
         expect(cognito.send).toHaveBeenCalledTimes(2);
     });
 
+    it('throws 409 when username already taken', async () => {
+        const cognito = makeCognito();
+        const prisma = makePrisma();
+        cognito.send.mockRejectedValueOnce(
+            cognitoError('UsernameExistsException'),
+        );
+
+        await expect(
+            createAuthService(
+                prisma as never,
+                cognito as never,
+                CLIENT_ID,
+                USER_POOL_ID,
+            ).register('alice', 'Password1'),
+        ).rejects.toMatchObject({
+            status: 409,
+            message: 'Username already taken',
+        });
+    });
+
+    it('throws 400 when password rejected by cognito', async () => {
+        const cognito = makeCognito();
+        const prisma = makePrisma();
+        cognito.send.mockRejectedValueOnce(
+            cognitoError('InvalidPasswordException'),
+        );
+
+        await expect(
+            createAuthService(
+                prisma as never,
+                cognito as never,
+                CLIENT_ID,
+                USER_POOL_ID,
+            ).register('alice', 'weak'),
+        ).rejects.toMatchObject({
+            status: 400,
+            message: 'Password does not meet requirements',
+        });
+    });
+
     it('throws combined error when rollback also fails', async () => {
         const cognito = makeCognito();
         const prisma = makePrisma();
@@ -249,5 +312,98 @@ describe('login', () => {
                 USER_POOL_ID,
             ).login('alice', 'Password1'),
         ).rejects.toThrow('auth failed');
+    });
+
+    it('throws 401 when password incorrect', async () => {
+        const cognito = makeCognito();
+        const prisma = makePrisma();
+        cognito.send.mockRejectedValueOnce(
+            cognitoError('NotAuthorizedException'),
+        );
+
+        await expect(
+            createAuthService(
+                prisma as never,
+                cognito as never,
+                CLIENT_ID,
+                USER_POOL_ID,
+            ).login('alice', 'WrongPassword'),
+        ).rejects.toMatchObject({
+            status: 401,
+            message: 'Incorrect username or password',
+        });
+    });
+
+    it('throws 401 when user does not exist', async () => {
+        const cognito = makeCognito();
+        const prisma = makePrisma();
+        cognito.send.mockRejectedValueOnce(
+            cognitoError('UserNotFoundException'),
+        );
+
+        await expect(
+            createAuthService(
+                prisma as never,
+                cognito as never,
+                CLIENT_ID,
+                USER_POOL_ID,
+            ).login('nobody', 'Password1'),
+        ).rejects.toMatchObject({
+            status: 401,
+            message: 'Incorrect username or password',
+        });
+    });
+
+    it('gives identical response for wrong password and unknown user', async () => {
+        const wrongPassword = makeCognito();
+        const unknownUser = makeCognito();
+        wrongPassword.send.mockRejectedValueOnce(
+            cognitoError('NotAuthorizedException'),
+        );
+        unknownUser.send.mockRejectedValueOnce(
+            cognitoError('UserNotFoundException'),
+        );
+
+        const wrongPasswordResponse = await captureLoginError(
+            wrongPassword,
+            'alice',
+            'WrongPassword',
+        );
+
+        expect(wrongPasswordResponse).toEqual(
+            await captureLoginError(unknownUser, 'nobody', 'Password1'),
+        );
+    });
+
+    it('bubbles a non-Error rejection unchanged', async () => {
+        const cognito = makeCognito();
+        const prisma = makePrisma();
+        cognito.send.mockRejectedValueOnce('cognito exploded');
+
+        await expect(
+            createAuthService(
+                prisma as never,
+                cognito as never,
+                CLIENT_ID,
+                USER_POOL_ID,
+            ).login('alice', 'Password1'),
+        ).rejects.toBe('cognito exploded');
+    });
+
+    it('does not leak the cognito message on auth failure', async () => {
+        const cognito = makeCognito();
+        const prisma = makePrisma();
+        cognito.send.mockRejectedValueOnce(
+            cognitoError('NotAuthorizedException'),
+        );
+
+        await expect(
+            createAuthService(
+                prisma as never,
+                cognito as never,
+                CLIENT_ID,
+                USER_POOL_ID,
+            ).login('alice', 'WrongPassword'),
+        ).rejects.not.toThrow('cognito internal detail');
     });
 });

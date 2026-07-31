@@ -5,6 +5,7 @@ import type { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-iden
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { PrismaClient } from './generated/prisma/client.js';
 import { createAuthMiddleware } from './middleware/auth.js';
+import { createErrorHandler } from './middleware/error-handler.js';
 import { env } from './lib/env.js';
 import { createHealthRouter } from './routes/health.js';
 import { createAuthRouter } from './routes/auth.js';
@@ -34,6 +35,7 @@ export const createApp = (
     app.use('/api/decks', createCardRouter(prisma, authMiddleware));
     app.use('/api/images', createImageRouter(s3, s3Bucket, authMiddleware));
     app.use('/api/games', createGameRouter(prisma, authMiddleware));
+    app.use(createErrorHandler(console.error));
 
     return app;
 };

@@ -21,6 +21,7 @@ const makeReqResNext = (authHeader?: string) => {
     const json = vi.fn();
     const res = { status, json } as unknown as Response;
     const next = vi.fn() as unknown as NextFunction;
+
     return { req, res, next, status, json };
 };
 

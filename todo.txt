@@ -1,4 +1,4 @@
-(A) 2026-07-30 Replace handleError with centralized createErrorHandler middleware + HttpError, log real error, return generic 500, map auth failures to 401/409 +backend @security
+x 2026-07-30 2026-07-30 Replace handleError with centralized createErrorHandler middleware + HttpError, log real error, return generic 500, map auth failures to 401/409 +backend @security
 (A) 2026-07-30 Add zod validation on all REST bodies and socket payloads, enforce configured max card/deck name lengths +backend @security
 (A) 2026-07-30 Reject imageKey values outside caller's own cards/<userId>/ prefix on card create +backend @security
 (A) 2026-07-30 Switch /images/upload-url to pre-signed POST with content-length-range and image-only content types +backend @security
