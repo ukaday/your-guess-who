@@ -1,0 +1,1 @@
+x 2026-07-30 2026-07-30 Replace handleError with centralized createErrorHandler middleware + HttpError, log real error, return generic 500, map auth failures to 401/409 +backend @security
