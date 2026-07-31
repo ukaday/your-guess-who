@@ -222,7 +222,7 @@ All resources in single CDK app under `infrastructure/`. Stacks split by concern
 - **VPC connector** — places service ENIs in `NetworkStack` isolated subnets so it can reach RDS
 - **Security group ingress** — adds `tcp/5432` rule on RDS SG from the connector SG, defined inside `BackendStack` (creating the rule on the DB side would form a dependency cycle: `DatabaseStack ↔ BackendStack`)
 - **Env vars** — `S3_BUCKET`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `DB_HOST`, `DB_PORT`, `DB_NAME` (`your_guess_who`), `PORT` (`3000`), `FRONTEND_ORIGIN` (`*` — unused once CloudFront same-origins front+back)
-- **Runtime secrets** — `DB_USERNAME`, `DB_PASSWORD` pulled from the RDS Secrets Manager secret (`username` + `password` fields). Backend assembles `DATABASE_URL` at startup. (Backend `env.ts` still needs updating to consume the split values — tracked in Future Enhancements until done.)
+- **Runtime secrets** — `DB_USERNAME`, `DB_PASSWORD` pulled from the RDS Secrets Manager secret (`username` + `password` fields). Backend `env.ts` assembles `DATABASE_URL` from the split values at startup (explicit `DATABASE_URL` still wins for local dev).
 - **Health check** — `HTTP GET /api/health`
 - **Auto-scaling** — min 1, max 5 (AppRunner `AutoScalingConfiguration` resource)
 - **IAM** — `bucket.grantReadWrite(service)` attaches S3 RW to the App Runner instance role; Secrets Manager read grants come from the `Secret.fromSecretsManager` helper automatically
@@ -340,7 +340,32 @@ Must pass before feature work begins on that layer. See `docs/bootstrap.md` for 
 
 ---
 
+## Security
+
+Findings from the 2026-07-01 security review, split by urgency. Items here block public exposure; lower-severity items live in Future Enhancements.
+
+### Required now
+
+- **Stop leaking internal errors** — `handleError` returns raw `err.message` in every 500. Prisma errors leak schema/query details; Cognito errors on `/auth/register` + `/auth/login` leak exact failure reasons (username enumeration). Fix: log the real error server-side, return generic message to client, map known auth failures to 401/409 instead of 500. Matches the existing `game:error` design note ("dev: full error, prod: generic") — apply the same rule to REST.
+- **Validate all input at the boundary** — every route does `req.body as { ... }` with no shape/length checks; socket payloads likewise. Add schema validation (zod) on all REST bodies and socket payloads. Enforce the configured max card/deck name length (BRD requirement, currently unenforced). Reject `imageKey` values outside the caller's own prefix (`cards/<userId>/…`) on card create.
+- **Constrain pre-signed uploads** — `/images/upload-url` signs a bare PUT: no size cap, no content-type restriction, no mint limit. Any authenticated user can upload unlimited multi-GB objects (S3 cost abuse). Fix: switch to pre-signed POST with `content-length-range` condition (pre-signed PUT cannot enforce size) + image content-types only. Size limit comes from backend config (BRD requirement).
+- **Pin CORS origin** — `BackendStack` sets `FRONTEND_ORIGIN: '*'`, flowing into Express + Socket.io CORS. Any website can call the API from a browser. Once `FrontendStack` same-origins front + back through CloudFront this becomes moot, but until then set it to the real frontend origin — never ship `'*'`.
+- **Make game start atomic** — `game:join` → `decideJoinOutcome` → `startGame` is check-then-act: two near-simultaneous joins can both trigger `startGame` (double secret-card assignment, double `game:started`). Same pattern in REST `joinGame` (two users racing one invite code → 3 players). Fix: wrap in a transaction with a conditional `updateMany where status: LOBBY` as the arbiter; treat `count === 0` as lost race.
+- **Container + local-dev hardening** — add `USER node` to the Dockerfile runner stage (currently runs as root); bind Postgres in `docker-compose.yml` to `127.0.0.1:5432` (currently exposed to LAN with `postgres/postgres` creds).
+
+### Accepted for MVP
+
+- **Socket auth is handshake-only** — token verified once at connect; socket outlives token expiry. Acceptable for a game session; revisit if sessions grow long-lived (see Future Enhancements).
+
+---
+
 ## Future Enhancements
+
+- **Rate limiting** — no app-level limits on `/auth/login` (password brute force; Cognito lockout helps but isn't a substitute), `/auth/register` (user-pool flooding), or `/games/join` (invite-code enumeration — 6 hex chars = 16.7M combinations). Add `express-rate-limit` on auth + join routes; consider widening the invite-code alphabet.
+- **Socket token re-validation** — periodically re-verify the JWT on long-lived sockets (or disconnect on expiry) so revoked users don't keep playing until disconnect.
+- **Cognito pool removal policy** — `AuthStack` uses `removalPolicy: DESTROY`; stack delete wipes all users irrecoverably. Fine for dev; switch to `RETAIN` before real users exist.
+- **Immutable image deploys** — `BackendStack` pulls the mutable `latest` ECR tag while CI tags by commit SHA. Align on SHA/digest-based deploys for integrity and rollback.
+- **Postgres version alignment** — RDS pins PostgreSQL 15, local Docker runs 17. Align versions so migrations behave identically in both.
 
 - **Invite code collision handling** — codes are 6-char UUID-derived (alphanumeric uppercase). Collision probability is negligible at current scale but not zero. Future: retry generation on `P2002` unique constraint violation, or switch to a larger code space.
 - **Eliminated cards persistence** — currently client-only state, lost on refresh. Future: persist per-player eliminated card IDs in DB to support reconnect board restoration and visible opponent elimination count.
@@ -348,7 +373,6 @@ Must pass before feature work begins on that layer. See `docs/bootstrap.md` for 
 - **Ack reliability on socket handlers** — handlers thread ack via `.then(() => ack?.())`. If the handler promise rejects, the `.then` is skipped and ack never fires — client `emitWithAck` hangs indefinitely. Future: switch to `.finally(() => ack?.())` so ack always fires regardless of handler outcome, and add an `emitWithAck` timeout on the client side as belt-and-suspenders.
 - **GameStatus enum usage** — status comparisons currently use string literals (`game.status === 'ACTIVE'`, `status: 'LOBBY'` in seeds). Refactor to use the generated `GameStatus` const (e.g., `game.status === GameStatus.ACTIVE`) so renames in `schema.prisma` propagate through TS at compile time instead of silently breaking at runtime.
 - **RDS backup retention bump** — currently 1 day (AWS Free Tier cap). Once the account upgrades off free tier, raise `backupRetention` to 7 days in `DatabaseStack` for better recovery window.
-- **Backend env.ts split DB config** — backend currently expects a single `DATABASE_URL`. `BackendStack` injects `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` separately. Update `src/lib/env.ts` to read these and assemble the URL (`postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`) at startup so the deployed service can connect to RDS.
 - **`game:concede` event** — lets a player forfeit mid-game. Server-side: validate game ACTIVE + sender is a player; set `winnerId` to opponent, status → FINISHED; emit `game:over` to room (extend payload with `reason: 'CONCEDE' | 'GUESS'` so loser knows how the game ended). Skipped in MVP since the win condition (`game:guess`) covers game-end; concede is quality-of-life for stuck players.
 - **`game:over` reveal payload** — currently emits only `{ winnerId }`. Future: include both players' secret cards for end-of-game reveal UX (`{ winnerId, revealedCards: { [userId]: cardId } }`).
 

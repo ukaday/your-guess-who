@@ -7,8 +7,6 @@
 (A) 2026-07-30 Add USER node to Dockerfile runner stage so container stops running as root +backend @security
 (A) 2026-07-30 Bind docker-compose Postgres to 127.0.0.1:5432 instead of LAN-exposed default creds +backend @security
 (B) 2026-07-30 Build Vue Router routes and views: Home, Login, Register, DeckList, DeckEditor, CreateGame, JoinGame, GameLobby, GameBoard +frontend
-(B) 2026-07-30 Build Pinia stores: authStore, deckStore, gameStore +frontend
-(B) 2026-07-30 Build shared Socket.io client: init on game join, teardown on leave, wire emit/listen events +frontend
 (B) 2026-07-30 Build card image upload flow: request pre-signed URL, PUT direct to S3 +frontend
 (C) 2026-07-30 Add GitHub Actions deploy workflows frontend.yml backend.yml infrastructure.yml using OIDC role, no long-lived AWS secrets +cicd @security
 (C) 2026-07-30 Add express-rate-limit on /auth/login /auth/register /games/join and widen invite-code alphabet +backend @security
@@ -26,3 +24,5 @@
 (D) 2026-07-30 Add rematch flow: post-game socket event creates new game with same deck +backend
 (D) 2026-07-30 Add spectators: read-only socket room members with relaxed game:join check +backend
 (D) 2026-07-30 Add cleanup job: archive or purge FINISHED games older than 30 days +backend
+(B) 2026-07-30 Build shared Socket.io client: init on game join, teardown on leave, wire emit/listen events +frontend
+(B) 2026-07-30 Build Pinia stores: authStore, deckStore, gameStore +frontend

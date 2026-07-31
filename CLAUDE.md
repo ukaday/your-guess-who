@@ -41,7 +41,7 @@ Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm package
 
 **Frontend** — Vue 3 + Vite + TypeScript. Pinia stores: `authStore`, `deckStore`, `gameStore`. One shared Socket.io client, init on game join, torn down on leave. Card images upload direct to S3 via pre-signed URL (never through app server). Vite proxy `/api` → `http://localhost:3000` for local dev.
 
-**Infrastructure** — AWS CDK (`infrastructure/`). Entry: `bin/app.ts`. Stack definitions: `lib/`. Six stacks: Network, Database (RDS PostgreSQL), Storage (S3 images), Auth (Cognito), Backend (App Runner + ECR), Frontend (S3 + CloudFront). Deployed via GitHub Actions on push to `main`.
+**Infrastructure** — AWS CDK (`infrastructure/`). Entry: `bin/app.ts`. Stack definitions: `lib/`. Six stacks: Network, Database (RDS PostgreSQL), Storage (S3 images), Auth (Cognito), Backend (App Runner + ECR), Frontend (S3 + CloudFront). Deployed manually via `npx cdk deploy` — no deploy automation yet. The only workflow is `.github/workflows/backend-ci.yml` (backend lint/build/test against a Postgres service container); OIDC-based deploy workflows are tracked in `todo.txt`.
 
 **Auth** — Cognito issues JWTs. Username + password only — no email or personal data. Backend validates via Cognito JWKS per request. Local DB `users` table mirrors Cognito sub as PK.
 
@@ -52,6 +52,10 @@ your-guess-who/
 ├── docker-compose.yml
 ├── context.md                        # gitignored — local AWS resource IDs
 ├── CLAUDE.md
+├── todo.txt                          # task backlog (todo.txt format, managed with tuxedo)
+├── .github/
+│   └── workflows/
+│       └── backend-ci.yml            # backend lint/build/test on push + PR
 ├── docs/
 │   ├── business-requirements.md
 │   ├── technical-design.md
@@ -81,7 +85,8 @@ your-guess-who/
 │       └── App.vue
 └── infrastructure/
     ├── bin/app.ts                    # CDK entry point
-    └── lib/                          # stack definitions
+    ├── lib/                          # stack definitions
+    └── tests/                        # CDK assertion tests
 ```
 
 ## Docs
@@ -91,7 +96,15 @@ your-guess-who/
 | `docs/business-requirements.md` | Game rules, deck/card constraints, gameplay mechanics |
 | `docs/technical-design.md` | API routes, Prisma schema, Socket.io events, CDK stacks, CI/CD |
 | `docs/program-plan.md` | Phased build plan with canary gates |
-| `docs/bootstrap.md` | One-time manual AWS + GitHub setup steps |
+| `docs/bootstrap-instructions.md` | One-time manual AWS + GitHub setup steps |
+
+Task backlog lives in `todo.txt` at repo root — todo.txt format. Check it for pending work before proposing new tasks.
+
+**Priority criteria** (current phase: backend security → MVP frontend → hardening → future):
+- **(A)** — Backend security fixes required before the backend is safe to run/expose. Blocks all other work.
+- **(B)** — Minimum frontend build needed for a playable MVP end-to-end (routes, stores, socket client, uploads).
+- **(C)** — Backend/infra hardening + CI/CD that doesn't block MVP; do after (B) ships.
+- **(D)** — Post-MVP features and polish.
 
 ## Collaboration
 
