@@ -1,0 +1,30 @@
+name: Deploy Backend
+
+on:
+    push:
+        branches: [master]
+        paths:
+            - 'backend/**'
+            - '.github/workflows/backend.yml'
+
+permissions:
+    id-token: write
+    contents: read
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: backend
+        steps:
+            - uses: actions/checkout@v4
+            - uses: aws-actions/configure-aws-credentials@v6
+              with:
+                  role-to-assume: arn:aws:iam::759542245177:role/github-actions-deploy
+                  aws-region: us-east-2
+            - uses: aws-actions/amazon-ecr-login@v2
+              id: ecr-login
+            - run: |
+                  docker build -t "${{ steps.ecr-login.outputs.registry }}/your-guess-who-backend:latest" .
+                  docker push "${{ steps.ecr-login.outputs.registry }}/your-guess-who-backend:latest"

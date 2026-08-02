@@ -37,6 +37,7 @@ export class NetworkStack extends cdk.Stack {
         return this.vpc.addInterfaceEndpoint('CognitoIdpEndpoint', {
             service: ec2.InterfaceVpcEndpointAwsService.COGNITO_IDP,
             privateDnsEnabled: true,
+            subnets: { subnets: this.vpc.isolatedSubnets.slice(0, 1) },
         });
     }
 }

@@ -6,6 +6,7 @@ import { DatabaseStack } from '../lib/database-stack.js';
 import { StorageStack } from '../lib/storage-stack.js';
 import { BackendStack } from '../lib/backend-stack.js';
 import { FrontendStack } from '../lib/frontend-stack.js';
+import { CicdStack } from '../lib/cicd-stack.js';
 
 const app = new cdk.App();
 
@@ -48,4 +49,11 @@ new FrontendStack(app, 'FrontendStack', {
     env,
     apiService: backend.service,
     frontendSources,
+});
+
+new CicdStack(app, 'CicdStack', {
+    env,
+    githubRepo: 'ukaday/your-guess-who',
+    cdkBootstrapQualifier: 'hnb659fds',
+    backendEcrRepoName: 'your-guess-who-backend',
 });

@@ -1,0 +1,32 @@
+name: Deploy Frontend
+
+on:
+    push:
+        branches: [master]
+        paths:
+            - 'frontend/**'
+            - '.github/workflows/frontend.yml'
+
+permissions:
+    id-token: write
+    contents: read
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: infrastructure
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+                  cache-dependency-path: infrastructure/package-lock.json
+            - uses: aws-actions/configure-aws-credentials@v6
+              with:
+                  role-to-assume: arn:aws:iam::759542245177:role/github-actions-deploy
+                  aws-region: us-east-2
+            - run: npm ci
+            - run: npx cdk deploy FrontendStack --require-approval never

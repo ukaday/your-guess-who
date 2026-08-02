@@ -79,6 +79,8 @@ export class BackendStack extends cdk.Stack {
                     },
                 },
             }),
+            cpu: apprunner.Cpu.QUARTER_VCPU,
+            memory: apprunner.Memory.HALF_GB,
             vpcConnector: this.vpcConnector,
             healthCheck: apprunner.HealthCheck.http({
                 path: '/api/health',
