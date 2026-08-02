@@ -59,7 +59,7 @@ export class BackendStack extends cdk.Stack {
                     port: 3000,
                     environmentVariables: {
                         PORT: '3000',
-                        FRONTEND_ORIGIN: '*',
+                        FRONTEND_ORIGIN: 'https://dql4zzzglw3o5.cloudfront.net',
                         S3_BUCKET: props.bucket.bucketName,
                         COGNITO_USER_POOL_ID: props.userPool.userPoolId,
                         COGNITO_CLIENT_ID: props.userPoolClient.userPoolClientId,
