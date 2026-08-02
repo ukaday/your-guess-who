@@ -5,6 +5,7 @@ x 2026-08-02 2026-07-30 Pin FRONTEND_ORIGIN to real frontend origin instead of w
 (A) 2026-07-30 Reject imageKey values outside caller's own cards/<userId>/ prefix on card create +backend @security due:2026-08-23 note:projects/tuxedo-tasks/reject-imagekey-values-outside-caller-s-own-cards-userid-prefix-on-card-create.md
 (A) 2026-07-30 Switch /images/upload-url to pre-signed POST with content-length-range and image-only content types +backend @security due:2026-08-30
 (A) 2026-07-30 Make game start atomic in game:join and REST joinGame: transaction + conditional updateMany where status LOBBY, count 0 = lost race +backend @security due:2026-09-06
+(B) 2026-08-02 Verify Socket.io websocket transport survives CloudFront to App Runner, App Runner has no native websocket or sticky session support so long-polling fallback breaks above one instance +infra @blocker due:2026-08-04
 (B) 2026-07-30 Build Pinia stores: authStore, deckStore, gameStore +frontend due:2026-09-20
 (B) 2026-07-30 Build Vue Router routes and views: Home, Login, Register, DeckList, DeckEditor, CreateGame, JoinGame, GameLobby, GameBoard +frontend due:2026-10-04
 (B) 2026-07-30 Build shared Socket.io client: init on game join, teardown on leave, wire emit/listen events +frontend due:2026-10-11
@@ -20,6 +21,7 @@ x 2026-08-02 2026-07-30 Pin FRONTEND_ORIGIN to real frontend origin instead of w
 (C) 2026-07-30 Fix socket ack reliability: ack in finally so rejected handlers still ack, add client emitWithAck timeout +backend due:2026-12-06
 (C) 2026-07-30 Replace game status string literals with generated GameStatus enum const +backend due:2026-12-13
 (C) 2026-07-30 Add ECR lifecycle policy to expire untagged image layers so CI pushes stop piling up storage cost +infra @cicd due:2026-12-20
+(C) 2026-08-02 Evaluate migrating backend off App Runner to ECS Express Mode, App Runner closed to new customers and gets no new features so websocket support will never land +infra due:2026-08-04
 (D) 2026-07-30 Persist eliminated cards in GamePlayerCard join table for reconnect restore and visible opponent board +backend due:2027-01-17
 (D) 2026-07-30 Add game:concede event, extend game:over payload with reason CONCEDE or GUESS +backend due:2027-01-31
 (D) 2026-07-30 Extend game:over with revealedCards payload for end-of-game reveal +backend due:2027-02-14

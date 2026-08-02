@@ -7,6 +7,7 @@ import { StorageStack } from '../lib/storage-stack.js';
 import { BackendStack } from '../lib/backend-stack.js';
 import { FrontendStack } from '../lib/frontend-stack.js';
 import { CicdStack } from '../lib/cicd-stack.js';
+import { BudgetStack } from '../lib/budget-stack.js';
 
 const app = new cdk.App();
 
@@ -56,4 +57,9 @@ new CicdStack(app, 'CicdStack', {
     githubRepo: 'ukaday/your-guess-who',
     cdkBootstrapQualifier: 'hnb659fds',
     backendEcrRepoName: 'your-guess-who-backend',
+});
+
+new BudgetStack(app, 'BudgetStack', {
+    env,
+    alertEmailParameterName: '/your-guess-who/budget-alert-email',
 });

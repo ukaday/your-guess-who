@@ -96,7 +96,7 @@ export class BackendStack extends cdk.Stack {
     private createAutoScalingConfiguration(): apprunner.AutoScalingConfiguration {
         return new apprunner.AutoScalingConfiguration(this, 'AutoScaling', {
             minSize: 1,
-            maxSize: 5,
+            maxSize: 3,
         });
     }
 
