@@ -94,7 +94,7 @@ your-guess-who/
 | File | Contents |
 |------|----------|
 | `docs/business-requirements.md` | Game rules, deck/card constraints, gameplay mechanics |
-| `docs/technical-design.md` | API routes, Prisma schema, Socket.io events, CDK stacks, CI/CD |
+| `docs/technical-design.md` | Spec: migrate backend off App Runner to ECS Express Mode |
 | `docs/program-plan.md` | Phased build plan with canary gates |
 | `docs/bootstrap-instructions.md` | One-time manual AWS + GitHub setup steps |
 
@@ -122,3 +122,17 @@ Act as tutor — explain concepts and guide the user to write the code. Don't im
 - **SOLID** — single responsibility, open/closed, dependency injection over hardcoded dependencies
 - **DRY** — no duplicated logic; shared values in config or env, not inlined
 - **YAGNI** — no placeholder files, no dead code, no stubs, no features not yet needed
+
+## Agent skills
+
+### Issue tracker
+
+Tasks live in `todo.txt` (todo.txt format, managed with tuxedo); per-ticket detail in `docs/tasks/projects/tuxedo-tasks/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The canonical triage roles, written as todo.txt `@contexts`. No `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context. See `docs/agents/domain.md`.

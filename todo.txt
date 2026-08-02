@@ -1,31 +1,35 @@
 x 2026-08-02 2026-07-30 Add USER node to Dockerfile runner stage so container stops running as root +backend @security due:2026-08-02
 x 2026-08-02 2026-07-30 Bind docker-compose Postgres to 127.0.0.1:5432 instead of LAN-exposed default creds +backend @security due:2026-08-02
 x 2026-08-02 2026-07-30 Pin FRONTEND_ORIGIN to real frontend origin instead of wildcard until CloudFront same-origin lands +infra @security due:2026-08-02
+x 2026-08-02 2026-07-30 Add GitHub Actions deploy workflows frontend.yml backend.yml infrastructure.yml using OIDC role, no long-lived AWS secrets +cicd @security due:2026-08-02
+(B) 2026-08-02 Infra step 1 of 6, fix CDK Docker bundling in CI, frontend asset bundling runs as runner UID with no home so npm cannot create its cache dir and every deploy fails before reaching AWS +cicd @blocker @ready-for-agent due:2026-08-03 note:projects/tuxedo-tasks/fix-cdk-docker-bundling-npm-cache-in-ci.md
+(B) 2026-08-02 Infra step 2 of 6, add public subnets and internet gateway to NetworkStack and remove the Cognito interface endpoint, Fargate tasks need egress that App Runner provided on its managed plane +infra @ready-for-agent due:2026-08-03 note:projects/tuxedo-tasks/add-public-subnets-and-drop-cognito-endpoint.md
+(B) 2026-08-02 Infra step 3 of 6, migrate backend to ECS Express Mode, stand up CfnExpressGatewayService L1 alongside App Runner, single task, existing health path, task SG admits only the managed ALB +infra @ready-for-agent due:2026-08-03 note:projects/tuxedo-tasks/replace-app-runner-with-ecs-express-mode.md
+(B) 2026-08-02 Infra step 4 of 6, cut CloudFront origin over to the Express service endpoint, scope errorResponses off API paths, verify websocket upgrade returns 101, then delete App Runner +infra @ready-for-agent due:2026-08-03 note:projects/tuxedo-tasks/cut-over-to-ecs-express-and-delete-app-runner.md
+(B) 2026-08-02 Infra step 5 of 6, add deployed CloudFront origin to StorageStack bucket CORS allowedOrigins, currently only http://localhost:5173 so pre-signed PUT uploads fail preflight in prod +infra @blocker due:2026-08-03
+(B) 2026-08-02 Infra step 6 of 6, deploy BudgetStack sized for ECS and ALB rather than App Runner, exclude credits, keep the alert address in Parameter Store, restate credit runway at the new monthly total +infra @ready-for-agent due:2026-08-03 note:projects/tuxedo-tasks/resize-budgets-for-ecs-express.md
 (A) 2026-07-30 Add zod validation on all REST bodies and socket payloads, enforce configured max card/deck name lengths +backend @security due:2026-08-16
 (A) 2026-07-30 Reject imageKey values outside caller's own cards/<userId>/ prefix on card create +backend @security due:2026-08-23 note:projects/tuxedo-tasks/reject-imagekey-values-outside-caller-s-own-cards-userid-prefix-on-card-create.md
 (A) 2026-07-30 Switch /images/upload-url to pre-signed POST with content-length-range and image-only content types +backend @security due:2026-08-30
 (A) 2026-07-30 Make game start atomic in game:join and REST joinGame: transaction + conditional updateMany where status LOBBY, count 0 = lost race +backend @security due:2026-09-06
-(B) 2026-08-02 Verify Socket.io websocket transport survives CloudFront to App Runner, App Runner has no native websocket or sticky session support so long-polling fallback breaks above one instance +infra @blocker due:2026-08-04
 (B) 2026-07-30 Build Pinia stores: authStore, deckStore, gameStore +frontend due:2026-09-20
 (B) 2026-07-30 Build Vue Router routes and views: Home, Login, Register, DeckList, DeckEditor, CreateGame, JoinGame, GameLobby, GameBoard +frontend due:2026-10-04
-(B) 2026-07-30 Build shared Socket.io client: init on game join, teardown on leave, wire emit/listen events +frontend due:2026-10-11
-(B) 2026-07-30 Build card image upload flow: request pre-signed URL, PUT direct to S3 +frontend due:2026-10-18
-(A) 2026-07-30 Add GitHub Actions deploy workflows frontend.yml backend.yml infrastructure.yml using OIDC role, no long-lived AWS secrets +cicd @security due:2026-08-02
+(B) 2026-07-30 Build shared Socket.io client: init on game join, teardown on leave, wire emit/listen events, default transports now that the ALB forwards upgrades +frontend due:2026-10-11
+(B) 2026-07-30 Build card image upload flow: request pre-signed URL, PUT direct to S3, needs the StorageStack CORS fix already deployed +frontend due:2026-10-18
 (C) 2026-08-02 Pin GitHub Actions to full commit SHAs instead of mutable v4/v6/v2 tags, deploy jobs hold admin-equivalent role +cicd @security due:2026-11-01
-(C) 2026-07-30 Add express-rate-limit on /auth/login /auth/register /games/join and widen invite-code alphabet +backend @security due:2026-11-08
+(C) 2026-07-30 Add express-rate-limit on /auth/login /auth/register /games/join and widen invite-code alphabet, first add a CloudFront origin request policy forwarding CloudFront-Viewer-Address and read the client IP from it, trust proxy is unset and ALL_VIEWER_EXCEPT_HOST_HEADER passes a spoofable X-Forwarded-For +backend @security due:2026-11-08
 (C) 2026-07-30 Switch AuthStack Cognito pool removalPolicy to RETAIN before real users exist +infra due:2026-11-15
-(C) 2026-07-30 Align Postgres versions: RDS pins 15, local Docker runs 17 +infra due:2026-11-15
-(C) 2026-07-30 Deploy backend images by commit SHA or digest instead of mutable latest tag +infra due:2026-11-22
+(C) 2026-07-30 Align Postgres versions: RDS pins 15, local Docker runs 17, CI service container runs 16 +infra due:2026-11-15
+(C) 2026-07-30 Deploy backend images to ECS Express by commit SHA or digest instead of mutable latest tag +infra due:2026-11-22
 (C) 2026-07-30 Re-validate JWT periodically on long-lived sockets or disconnect on expiry +backend @security due:2026-11-29
 (C) 2026-07-30 Retry invite code generation on P2002 unique constraint collision +backend due:2026-12-06
 (C) 2026-07-30 Fix socket ack reliability: ack in finally so rejected handlers still ack, add client emitWithAck timeout +backend due:2026-12-06
 (C) 2026-07-30 Replace game status string literals with generated GameStatus enum const +backend due:2026-12-13
 (C) 2026-07-30 Add ECR lifecycle policy to expire untagged image layers so CI pushes stop piling up storage cost +infra @cicd due:2026-12-20
-(C) 2026-08-02 Evaluate migrating backend off App Runner to ECS Express Mode, App Runner closed to new customers and gets no new features so websocket support will never land +infra due:2026-08-04
+(C) 2026-08-02 Add shared Socket.io adapter so rooms survive across tasks, required before ECS Express maxTaskCount can go above 1 +backend due:2027-01-10
 (D) 2026-07-30 Persist eliminated cards in GamePlayerCard join table for reconnect restore and visible opponent board +backend due:2027-01-17
 (D) 2026-07-30 Add game:concede event, extend game:over payload with reason CONCEDE or GUESS +backend due:2027-01-31
 (D) 2026-07-30 Extend game:over with revealedCards payload for end-of-game reveal +backend due:2027-02-14
 (D) 2026-07-30 Add rematch flow: post-game socket event creates new game with same deck +backend due:2027-02-28
 (D) 2026-07-30 Add spectators: read-only socket room members with relaxed game:join check +backend due:2027-03-14
 (D) 2026-07-30 Add cleanup job: archive or purge FINISHED games older than 30 days +backend due:2027-03-21
-(A) 2026-08-02 Add AWS Budgets +infra due:2026-08-02
