@@ -21,5 +21,6 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/dist ./dist
+USER node
 EXPOSE 3000
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]

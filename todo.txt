@@ -1,4 +1,4 @@
-(A) 2026-07-30 Add USER node to Dockerfile runner stage so container stops running as root +backend @security due:2026-08-02
+x 2026-08-02 2026-07-30 Add USER node to Dockerfile runner stage so container stops running as root +backend @security due:2026-08-02
 (C) 2026-07-30 Bind docker-compose Postgres to 127.0.0.1:5432 instead of LAN-exposed default creds +backend @security due:2026-08-02
 (A) 2026-07-30 Pin FRONTEND_ORIGIN to real frontend origin instead of wildcard until CloudFront same-origin lands +infra @security due:2026-08-02
 (A) 2026-07-30 Add zod validation on all REST bodies and socket payloads, enforce configured max card/deck name lengths +backend @security due:2026-08-16
@@ -9,7 +9,7 @@
 (B) 2026-07-30 Build Vue Router routes and views: Home, Login, Register, DeckList, DeckEditor, CreateGame, JoinGame, GameLobby, GameBoard +frontend due:2026-10-04
 (B) 2026-07-30 Build shared Socket.io client: init on game join, teardown on leave, wire emit/listen events +frontend due:2026-10-11
 (B) 2026-07-30 Build card image upload flow: request pre-signed URL, PUT direct to S3 +frontend due:2026-10-18
-(C) 2026-07-30 Add GitHub Actions deploy workflows frontend.yml backend.yml infrastructure.yml using OIDC role, no long-lived AWS secrets +cicd @security due:2026-11-01
+(A) 2026-07-30 Add GitHub Actions deploy workflows frontend.yml backend.yml infrastructure.yml using OIDC role, no long-lived AWS secrets +cicd @security due:2026-08-03
 (C) 2026-07-30 Add express-rate-limit on /auth/login /auth/register /games/join and widen invite-code alphabet +backend @security due:2026-11-08
 (C) 2026-07-30 Switch AuthStack Cognito pool removalPolicy to RETAIN before real users exist +infra due:2026-11-15
 (C) 2026-07-30 Raise RDS backupRetention to 7 days now that account is on paid plan +infra due:2026-11-15
@@ -25,3 +25,4 @@
 (D) 2026-07-30 Add rematch flow: post-game socket event creates new game with same deck +backend due:2027-02-28
 (D) 2026-07-30 Add spectators: read-only socket room members with relaxed game:join check +backend due:2027-03-14
 (D) 2026-07-30 Add cleanup job: archive or purge FINISHED games older than 30 days +backend due:2027-03-21
+(A) 2026-08-02 Add AWS Budgets +infra due:2026-08-02
