@@ -19,7 +19,6 @@ export class NetworkStack extends cdk.Stack {
         this.vpc = this.createVpc();
         this.s3GatewayEndpoint = this.createS3GatewayEndpoint();
         this.publicSubnetIds = this.createPublicSubnets();
-        this.retainVpcCidrBlockExportUntilBackendStackStopsImportingIt();
     }
 
     private createVpc(): ec2.Vpc {
@@ -110,9 +109,5 @@ export class NetworkStack extends cdk.Stack {
         defaultRoute.addDependency(attachment);
 
         return routeTable;
-    }
-
-    private retainVpcCidrBlockExportUntilBackendStackStopsImportingIt(): void {
-        this.exportValue(this.vpc.vpcCidrBlock);
     }
 }
