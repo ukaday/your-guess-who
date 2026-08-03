@@ -64,7 +64,7 @@ describe('CicdStack', function () {
         );
     });
 
-    it('allows assuming only the two CDK bootstrap roles it needs', function () {
+    it('allows assuming only the CDK bootstrap roles it needs, including lookup for AZ context', function () {
         Template.fromStack(makeStack()).hasResourceProperties(
             'AWS::IAM::Policy',
             {
@@ -76,12 +76,21 @@ describe('CicdStack', function () {
                             Resource: [
                                 'arn:aws:iam::111111111111:role/cdk-hnb659fds-deploy-role-111111111111-us-east-2',
                                 'arn:aws:iam::111111111111:role/cdk-hnb659fds-file-publishing-role-111111111111-us-east-2',
+                                'arn:aws:iam::111111111111:role/cdk-hnb659fds-lookup-role-111111111111-us-east-2',
                             ],
                         }),
                     ]),
                 }),
             },
         );
+    });
+
+    it('grants no image-publishing role, there are no Docker image assets', function () {
+        const rendered = JSON.stringify(
+            Template.fromStack(makeStack()).toJSON(),
+        );
+
+        expect(rendered).not.toContain('image-publishing-role');
     });
 
     it('scopes ECR layer pushes to the backend repository', function () {

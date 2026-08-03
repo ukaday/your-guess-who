@@ -45,6 +45,7 @@ export class CicdStack extends cdk.Stack {
                         Resource: [
                             `arn:aws:iam::${this.account}:role/cdk-${props.cdkBootstrapQualifier}-deploy-role-${this.account}-${this.region}`,
                             `arn:aws:iam::${this.account}:role/cdk-${props.cdkBootstrapQualifier}-file-publishing-role-${this.account}-${this.region}`,
+                            `arn:aws:iam::${this.account}:role/cdk-${props.cdkBootstrapQualifier}-lookup-role-${this.account}-${this.region}`,
                         ],
                     },
                     {
