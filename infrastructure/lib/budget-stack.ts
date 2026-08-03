@@ -29,47 +29,11 @@ export class BudgetStack extends cdk.Stack {
             props.alertEmailParameterName,
         );
 
-        const definitions: BudgetDefinition[] = [
-            {
-                id: 'AccountMonthly',
-                amount: 40,
-                timeUnit: 'MONTHLY',
-                alerts: [
-                    { threshold: 80, notificationType: 'ACTUAL' },
-                    { threshold: 100, notificationType: 'ACTUAL' },
-                    { threshold: 100, notificationType: 'FORECASTED' },
-                ],
-            },
-            {
-                id: 'AccountDaily',
-                amount: 2,
-                timeUnit: 'DAILY',
-                alerts: [{ threshold: 100, notificationType: 'ACTUAL' }],
-            },
-            {
-                id: 'DatabaseMonthly',
-                amount: 16,
-                timeUnit: 'MONTHLY',
-                service: 'Amazon Relational Database Service',
-                alerts: [{ threshold: 100, notificationType: 'ACTUAL' }],
-            },
-            {
-                id: 'NetworkMonthly',
-                amount: 9,
-                timeUnit: 'MONTHLY',
-                service: 'Amazon Virtual Private Cloud',
-                alerts: [{ threshold: 100, notificationType: 'ACTUAL' }],
-            },
-            {
-                id: 'AppRunnerMonthly',
-                amount: 12,
-                timeUnit: 'MONTHLY',
-                service: 'AWS App Runner',
-                alerts: [{ threshold: 100, notificationType: 'ACTUAL' }],
-            },
-        ];
+        this.createBudgets(alertEmail);
+    }
 
-        definitions.forEach((definition) => {
+    private createBudgets(alertEmail: string): void {
+        this.budgetDefinitions().forEach((definition) => {
             new budgets.CfnBudget(this, definition.id, {
                 budget: {
                     budgetName: definition.id,
@@ -97,5 +61,54 @@ export class BudgetStack extends cdk.Stack {
                 })),
             });
         });
+    }
+
+    private budgetDefinitions(): BudgetDefinition[] {
+        return [
+            {
+                id: 'AccountMonthly',
+                amount: 60,
+                timeUnit: 'MONTHLY',
+                alerts: [
+                    { threshold: 80, notificationType: 'ACTUAL' },
+                    { threshold: 100, notificationType: 'ACTUAL' },
+                    { threshold: 100, notificationType: 'FORECASTED' },
+                ],
+            },
+            {
+                id: 'AccountDaily',
+                amount: 3,
+                timeUnit: 'DAILY',
+                alerts: [{ threshold: 100, notificationType: 'ACTUAL' }],
+            },
+            {
+                id: 'DatabaseMonthly',
+                amount: 16,
+                timeUnit: 'MONTHLY',
+                service: 'Amazon Relational Database Service',
+                alerts: [{ threshold: 100, notificationType: 'ACTUAL' }],
+            },
+            {
+                id: 'ComputeMonthly',
+                amount: 13,
+                timeUnit: 'MONTHLY',
+                service: 'Amazon Elastic Container Service',
+                alerts: [{ threshold: 100, notificationType: 'ACTUAL' }],
+            },
+            {
+                id: 'LoadBalancerMonthly',
+                amount: 25,
+                timeUnit: 'MONTHLY',
+                service: 'Elastic Load Balancing',
+                alerts: [{ threshold: 100, notificationType: 'ACTUAL' }],
+            },
+            {
+                id: 'NetworkMonthly',
+                amount: 8,
+                timeUnit: 'MONTHLY',
+                service: 'Amazon Virtual Private Cloud',
+                alerts: [{ threshold: 100, notificationType: 'ACTUAL' }],
+            },
+        ];
     }
 }

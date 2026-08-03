@@ -3,11 +3,11 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
-import * as apprunner from '@aws-cdk/aws-apprunner-alpha';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import type { Construct } from 'constructs';
 
 export interface FrontendStackProps extends cdk.StackProps {
-    apiService: apprunner.Service;
+    apiEndpoint: string;
     frontendSources: s3deploy.ISource[];
 }
 
@@ -19,7 +19,8 @@ export class FrontendStack extends cdk.Stack {
         super(scope, id, props);
 
         this.bucket = this.createBucket();
-        this.distribution = this.createDistribution(props.apiService);
+        this.distribution = this.createDistribution(props.apiEndpoint);
+        this.allowDistributionToListBucket();
         this.deployAssets(props.frontendSources);
         this.deployAppShell(props.frontendSources);
         this.createOutputs();
@@ -34,10 +35,8 @@ export class FrontendStack extends cdk.Stack {
         });
     }
 
-    private createDistribution(
-        apiService: apprunner.Service,
-    ): cloudfront.Distribution {
-        const apiOrigin = new origins.HttpOrigin(apiService.serviceUrl);
+    private createDistribution(apiEndpoint: string): cloudfront.Distribution {
+        const apiOrigin = new origins.HttpOrigin(apiEndpoint);
         const apiBehavior: cloudfront.BehaviorOptions = {
             origin: apiOrigin,
             allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
@@ -67,12 +66,6 @@ export class FrontendStack extends cdk.Stack {
             },
             errorResponses: [
                 {
-                    httpStatus: 403,
-                    responseHttpStatus: 200,
-                    responsePagePath: '/index.html',
-                    ttl: cdk.Duration.seconds(0),
-                },
-                {
                     httpStatus: 404,
                     responseHttpStatus: 200,
                     responsePagePath: '/index.html',
@@ -80,6 +73,23 @@ export class FrontendStack extends cdk.Stack {
                 },
             ],
         });
+    }
+
+    private allowDistributionToListBucket(): void {
+        this.bucket.addToResourcePolicy(
+            new iam.PolicyStatement({
+                actions: ['s3:ListBucket'],
+                principals: [
+                    new iam.ServicePrincipal('cloudfront.amazonaws.com'),
+                ],
+                resources: [this.bucket.bucketArn],
+                conditions: {
+                    StringEquals: {
+                        'AWS:SourceArn': `arn:${this.partition}:cloudfront::${this.account}:distribution/${this.distribution.distributionId}`,
+                    },
+                },
+            }),
+        );
     }
 
     private deployAssets(sources: s3deploy.ISource[]): void {

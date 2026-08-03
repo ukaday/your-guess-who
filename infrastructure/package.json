@@ -7,7 +7,6 @@
         "test": "vitest run --coverage"
     },
     "devDependencies": {
-        "@aws-cdk/aws-apprunner-alpha": "^2.259.0-alpha.0",
         "@types/node": "^25.0.0",
         "@vitest/coverage-v8": "^4.1.8",
         "aws-cdk": "^2.1126.0",

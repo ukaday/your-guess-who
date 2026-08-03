@@ -9,7 +9,7 @@ import { BackendStack } from '../lib/backend-stack.js';
 
 const testEnv = { account: '111111111111', region: 'us-east-2' };
 
-function makeDeps() {
+function makeStack() {
     const app = new App();
     const supportStack: Stack = new Stack(app, 'TestSupport', { env: testEnv });
     const vpc = new ec2.Vpc(supportStack, 'Vpc', {
@@ -35,196 +35,211 @@ function makeDeps() {
         { userPool },
     );
 
-    return {
-        app,
-        supportStack,
+    return new BackendStack(app, 'TestBackend', {
+        env: testEnv,
         vpc,
+        publicSubnetIds: ['subnet-public1', 'subnet-public2'],
         dbInstance,
         bucket,
         userPool,
         userPoolClient,
-    };
+        frontendOrigin: 'https://example.cloudfront.net',
+    });
 }
 
 describe('BackendStack', function () {
     it('imports the existing ECR repository (does not create one)', function () {
-        const deps = makeDeps();
-        const stack = new BackendStack(deps.app, 'TestBackend', {
-            env: testEnv,
-            vpc: deps.vpc,
-            dbInstance: deps.dbInstance,
-            bucket: deps.bucket,
-            userPool: deps.userPool,
-            userPoolClient: deps.userPoolClient,
-        });
-
-        Template.fromStack(stack).resourceCountIs('AWS::ECR::Repository', 0);
+        Template.fromStack(makeStack()).resourceCountIs(
+            'AWS::ECR::Repository',
+            0,
+        );
     });
 
-    it('creates an App Runner service backed by the ECR image', function () {
-        const deps = makeDeps();
-        const stack = new BackendStack(deps.app, 'TestBackend', {
-            env: testEnv,
-            vpc: deps.vpc,
-            dbInstance: deps.dbInstance,
-            bucket: deps.bucket,
-            userPool: deps.userPool,
-            userPoolClient: deps.userPoolClient,
-        });
-        const template = Template.fromStack(stack);
+    it('creates an ECS Express gateway service backed by the ECR image', function () {
+        const template = Template.fromStack(makeStack());
 
-        template.resourceCountIs('AWS::AppRunner::Service', 1);
-        template.hasResourceProperties('AWS::AppRunner::Service', {
-            SourceConfiguration: Match.objectLike({
-                ImageRepository: Match.objectLike({
-                    ImageRepositoryType: 'ECR',
-                }),
+        template.resourceCountIs('AWS::ECS::ExpressGatewayService', 1);
+        template.hasResourceProperties('AWS::ECS::ExpressGatewayService', {
+            PrimaryContainer: Match.objectLike({
+                Image: Match.anyValue(),
+                ContainerPort: 3000,
             }),
         });
     });
 
-    it('opens the database security group to the App Runner connector', function () {
-        const deps = makeDeps();
-        const stack = new BackendStack(deps.app, 'TestBackend', {
-            env: testEnv,
-            vpc: deps.vpc,
-            dbInstance: deps.dbInstance,
-            bucket: deps.bucket,
-            userPool: deps.userPool,
-            userPoolClient: deps.userPoolClient,
-        });
+    it('leaves no App Runner resources behind', function () {
+        const template = Template.fromStack(makeStack());
 
-        Template.fromStack(stack).hasResourceProperties(
-            'AWS::EC2::SecurityGroupIngress',
-            { FromPort: 5432, ToPort: 5432, IpProtocol: 'tcp' },
+        template.resourceCountIs('AWS::AppRunner::Service', 0);
+        template.resourceCountIs('AWS::AppRunner::VpcConnector', 0);
+        template.resourceCountIs('AWS::AppRunner::AutoScalingConfiguration', 0);
+    });
+
+    it('runs exactly one task because Socket.io rooms are held in process memory', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::ECS::ExpressGatewayService',
+            { ScalingTarget: { MinTaskCount: 1, MaxTaskCount: 1 } },
         );
     });
 
-    it('publishes config to App Runner via env vars and secret refs', function () {
-        const deps = makeDeps();
-        const stack = new BackendStack(deps.app, 'TestBackend', {
-            env: testEnv,
-            vpc: deps.vpc,
-            dbInstance: deps.dbInstance,
-            bucket: deps.bucket,
-            userPool: deps.userPool,
-            userPoolClient: deps.userPoolClient,
-        });
+    it('sizes tasks to match the previous App Runner allocation', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::ECS::ExpressGatewayService',
+            { Cpu: '256', Memory: '512' },
+        );
+    });
 
-        Template.fromStack(stack).hasResourceProperties(
-            'AWS::AppRunner::Service',
+    it('health checks against /api/health rather than the platform default', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::ECS::ExpressGatewayService',
+            { HealthCheckPath: '/api/health' },
+        );
+    });
+
+    it('publishes config via env vars and secret refs', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::ECS::ExpressGatewayService',
             {
-                SourceConfiguration: Match.objectLike({
-                    ImageRepository: Match.objectLike({
-                        ImageConfiguration: Match.objectLike({
-                            RuntimeEnvironmentVariables: Match.arrayWith([
-                                Match.objectLike({ Name: 'PORT' }),
-                                Match.objectLike({ Name: 'FRONTEND_ORIGIN' }),
-                                Match.objectLike({ Name: 'S3_BUCKET' }),
-                                Match.objectLike({
-                                    Name: 'COGNITO_USER_POOL_ID',
-                                }),
-                                Match.objectLike({ Name: 'COGNITO_CLIENT_ID' }),
-                                Match.objectLike({ Name: 'DB_HOST' }),
-                                Match.objectLike({ Name: 'DB_PORT' }),
-                                Match.objectLike({ Name: 'DB_NAME' }),
-                            ]),
-                            RuntimeEnvironmentSecrets: Match.arrayWith([
-                                Match.objectLike({ Name: 'DB_USERNAME' }),
-                                Match.objectLike({ Name: 'DB_PASSWORD' }),
-                            ]),
+                PrimaryContainer: Match.objectLike({
+                    Environment: Match.arrayWith([
+                        Match.objectLike({ Name: 'PORT' }),
+                        Match.objectLike({
+                            Name: 'FRONTEND_ORIGIN',
+                            Value: 'https://example.cloudfront.net',
                         }),
-                    }),
+                        Match.objectLike({ Name: 'S3_BUCKET' }),
+                        Match.objectLike({ Name: 'COGNITO_USER_POOL_ID' }),
+                        Match.objectLike({ Name: 'COGNITO_CLIENT_ID' }),
+                        Match.objectLike({ Name: 'DB_HOST' }),
+                        Match.objectLike({ Name: 'DB_PORT' }),
+                        Match.objectLike({ Name: 'DB_NAME' }),
+                    ]),
+                    Secrets: Match.arrayWith([
+                        Match.objectLike({ Name: 'DB_USERNAME' }),
+                        Match.objectLike({ Name: 'DB_PASSWORD' }),
+                    ]),
                 }),
             },
         );
     });
 
-    it('configures HTTP health checks against /api/health', function () {
-        const deps = makeDeps();
-        const stack = new BackendStack(deps.app, 'TestBackend', {
-            env: testEnv,
-            vpc: deps.vpc,
-            dbInstance: deps.dbInstance,
-            bucket: deps.bucket,
-            userPool: deps.userPool,
-            userPoolClient: deps.userPoolClient,
-        });
-
-        Template.fromStack(stack).hasResourceProperties(
-            'AWS::AppRunner::Service',
+    it('places tasks in the public subnets with the task security group attached', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::ECS::ExpressGatewayService',
             {
-                HealthCheckConfiguration: Match.objectLike({
-                    Protocol: 'HTTP',
-                    Path: '/api/health',
-                }),
+                NetworkConfiguration: {
+                    Subnets: ['subnet-public1', 'subnet-public2'],
+                    SecurityGroups: Match.anyValue(),
+                },
             },
         );
     });
 
-    it('scales between 1 and 5 instances', function () {
-        const deps = makeDeps();
-        const stack = new BackendStack(deps.app, 'TestBackend', {
-            env: testEnv,
-            vpc: deps.vpc,
-            dbInstance: deps.dbInstance,
-            bucket: deps.bucket,
-            userPool: deps.userPool,
-            userPoolClient: deps.userPoolClient,
-        });
-        const template = Template.fromStack(stack);
-
-        template.resourceCountIs(
-            'AWS::AppRunner::AutoScalingConfiguration',
-            1,
-        );
-        template.hasResourceProperties(
-            'AWS::AppRunner::AutoScalingConfiguration',
-            { MinSize: 1, MaxSize: 5 },
-        );
-    });
-
-    it('grants the App Runner instance role read/write on the bucket', function () {
-        const deps = makeDeps();
-        const stack = new BackendStack(deps.app, 'TestBackend', {
-            env: testEnv,
-            vpc: deps.vpc,
-            dbInstance: deps.dbInstance,
-            bucket: deps.bucket,
-            userPool: deps.userPool,
-            userPoolClient: deps.userPoolClient,
-        });
-
-        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
-            PolicyDocument: Match.objectLike({
-                Statement: Match.arrayWith([
+    it('admits load balancer traffic to tasks only from inside the VPC', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::EC2::SecurityGroup',
+            {
+                GroupDescription: Match.stringLikeRegexp('ECS Express'),
+                SecurityGroupIngress: Match.arrayWith([
                     Match.objectLike({
-                        Action: Match.arrayWith(['s3:GetObject*', 's3:PutObject']),
+                        FromPort: 3000,
+                        ToPort: 3000,
+                        IpProtocol: 'tcp',
                     }),
                 ]),
-            }),
-        });
+            },
+        );
     });
 
-    it('joins the App Runner service to the VPC via a connector', function () {
-        const deps = makeDeps();
-        const stack = new BackendStack(deps.app, 'TestBackend', {
-            env: testEnv,
-            vpc: deps.vpc,
-            dbInstance: deps.dbInstance,
-            bucket: deps.bucket,
-            userPool: deps.userPool,
-            userPoolClient: deps.userPoolClient,
-        });
-        const template = Template.fromStack(stack);
+    it('opens the database security group to the task security group', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::EC2::SecurityGroupIngress',
+            {
+                FromPort: 5432,
+                ToPort: 5432,
+                IpProtocol: 'tcp',
+                SourceSecurityGroupId: Match.anyValue(),
+            },
+        );
+    });
 
-        template.resourceCountIs('AWS::AppRunner::VpcConnector', 1);
-        template.hasResourceProperties('AWS::AppRunner::Service', {
-            NetworkConfiguration: Match.objectLike({
-                EgressConfiguration: Match.objectLike({
-                    EgressType: 'VPC',
+    it('creates an execution role ECS tasks can assume', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::IAM::Role',
+            {
+                AssumeRolePolicyDocument: Match.objectLike({
+                    Statement: Match.arrayWith([
+                        Match.objectLike({
+                            Principal: { Service: 'ecs-tasks.amazonaws.com' },
+                        }),
+                    ]),
                 }),
-            }),
+                ManagedPolicyArns: Match.arrayWith([
+                    Match.objectLike({
+                        'Fn::Join': Match.arrayWith([
+                            Match.arrayWith([
+                                Match.stringLikeRegexp(
+                                    'AmazonECSTaskExecutionRolePolicy',
+                                ),
+                            ]),
+                        ]),
+                    }),
+                ]),
+            },
+        );
+    });
+
+    it('creates an infrastructure role ECS itself can assume to manage the load balancer', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::IAM::Role',
+            {
+                AssumeRolePolicyDocument: Match.objectLike({
+                    Statement: Match.arrayWith([
+                        Match.objectLike({
+                            Principal: { Service: 'ecs.amazonaws.com' },
+                        }),
+                    ]),
+                }),
+                ManagedPolicyArns: Match.arrayWith([
+                    Match.objectLike({
+                        'Fn::Join': Match.arrayWith([
+                            Match.arrayWith([
+                                Match.stringLikeRegexp(
+                                    'AmazonECSInfrastructureRoleforExpressGatewayServices',
+                                ),
+                            ]),
+                        ]),
+                    }),
+                ]),
+            },
+        );
+    });
+
+    it('grants the task role read/write on the image bucket', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::IAM::Policy',
+            {
+                PolicyDocument: Match.objectLike({
+                    Statement: Match.arrayWith([
+                        Match.objectLike({
+                            Action: Match.arrayWith([
+                                's3:GetObject*',
+                                's3:PutObject',
+                            ]),
+                        }),
+                    ]),
+                }),
+            },
+        );
+    });
+
+    it('creates an ECS cluster to host the service', function () {
+        Template.fromStack(makeStack()).resourceCountIs('AWS::ECS::Cluster', 1);
+    });
+
+    it('outputs the service endpoint for the CloudFront origin', function () {
+        Template.fromStack(makeStack()).hasOutput('*', {
+            Value: { 'Fn::GetAtt': Match.arrayWith(['Endpoint']) },
         });
     });
 });

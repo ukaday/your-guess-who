@@ -16,27 +16,40 @@ const env = {
     region: process.env['CDK_DEFAULT_REGION'],
 };
 
+const frontendOrigin = 'https://dql4zzzglw3o5.cloudfront.net';
+const localDevOrigin = 'http://localhost:5173';
+
 const auth = new AuthStack(app, 'AuthStack', { env });
 const network = new NetworkStack(app, 'NetworkStack', { env });
 const database = new DatabaseStack(app, 'DatabaseStack', {
     env,
     vpc: network.vpc,
 });
-const storage = new StorageStack(app, 'StorageStack', { env });
+const storage = new StorageStack(app, 'StorageStack', {
+    env,
+    frontendOrigin,
+    localDevOrigin,
+});
 
 const backend = new BackendStack(app, 'BackendStack', {
     env,
     vpc: network.vpc,
+    publicSubnetIds: network.publicSubnetIds,
     dbInstance: database.instance,
     bucket: storage.bucket,
     userPool: auth.userPool,
     userPoolClient: auth.userPoolClient,
+    frontendOrigin,
 });
 
 const frontendSources = [
     s3deploy.Source.asset('../frontend', {
         bundling: {
             image: cdk.DockerImage.fromRegistry('node:22-alpine'),
+            environment: {
+                HOME: '/tmp',
+                npm_config_cache: '/tmp/.npm',
+            },
             command: [
                 'sh',
                 '-c',
@@ -48,7 +61,7 @@ const frontendSources = [
 
 new FrontendStack(app, 'FrontendStack', {
     env,
-    apiService: backend.service,
+    apiEndpoint: backend.serviceEndpoint,
     frontendSources,
 });
 

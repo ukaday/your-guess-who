@@ -43,7 +43,7 @@ describe('DatabaseStack', function () {
         );
     });
 
-    it('runs on a t3.micro instance', function () {
+    it('runs on a Graviton t4g.micro instance', function () {
         const { app, vpc } = makeVpc();
         const stack = new DatabaseStack(app, 'TestDatabase', {
             env: testEnv,
@@ -52,7 +52,7 @@ describe('DatabaseStack', function () {
 
         Template.fromStack(stack).hasResourceProperties(
             'AWS::RDS::DBInstance',
-            { DBInstanceClass: 'db.t3.micro' },
+            { DBInstanceClass: 'db.t4g.micro' },
         );
     });
 

@@ -1,47 +1,24 @@
 import { describe, it } from 'vitest';
-import { App, Stack } from 'aws-cdk-lib';
+import { App } from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as apprunner from '@aws-cdk/aws-apprunner-alpha';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import { FrontendStack } from '../lib/frontend-stack.js';
 
 const testEnv = { account: '111111111111', region: 'us-east-2' };
 
-function makeDeps() {
-    const app = new App();
-    const supportStack = new Stack(app, 'TestSupport', { env: testEnv });
-    const vpc = new ec2.Vpc(supportStack, 'Vpc', {
-        maxAzs: 2,
-        subnetConfiguration: [
-            { name: 'Isolated', subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+function makeStack() {
+    return new FrontendStack(new App(), 'TestFrontend', {
+        env: testEnv,
+        apiEndpoint: 'api.example.com',
+        frontendSources: [
+            s3deploy.Source.data('index.html', '<html></html>'),
         ],
     });
-    const vpcConnector = new apprunner.VpcConnector(supportStack, 'VpcConnector', {
-        vpc,
-        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
-    });
-    const apiService = new apprunner.Service(supportStack, 'ApiService', {
-        source: apprunner.Source.fromEcrPublic({
-            imageIdentifier: 'public.ecr.aws/aws-containers/hello-app-runner:latest',
-        }),
-        vpcConnector,
-    });
-    const frontendSources = [s3deploy.Source.data('index.html', '<html></html>')];
-
-    return { app, supportStack, apiService, frontendSources };
 }
 
 describe('FrontendStack', function () {
     it('creates a CloudFront distribution rooted at index.html on PRICE_CLASS_100 with HTTP/2+3', function () {
-        const deps = makeDeps();
-        const stack = new FrontendStack(deps.app, 'TestFrontend', {
-            env: testEnv,
-            apiService: deps.apiService,
-            frontendSources: deps.frontendSources,
-        });
-
-        Template.fromStack(stack).hasResourceProperties(
+        Template.fromStack(makeStack()).hasResourceProperties(
             'AWS::CloudFront::Distribution',
             {
                 DistributionConfig: Match.objectLike({
@@ -54,14 +31,7 @@ describe('FrontendStack', function () {
     });
 
     it('outputs the CloudFront distribution domain name', function () {
-        const deps = makeDeps();
-        const stack = new FrontendStack(deps.app, 'TestFrontend', {
-            env: testEnv,
-            apiService: deps.apiService,
-            frontendSources: deps.frontendSources,
-        });
-
-        Template.fromStack(stack).hasOutput('*', {
+        Template.fromStack(makeStack()).hasOutput('*', {
             Value: {
                 'Fn::GetAtt': Match.arrayWith([
                     Match.stringLikeRegexp('Distribution'),
@@ -72,13 +42,7 @@ describe('FrontendStack', function () {
     });
 
     it('deploys assets with immutable long-cache and other files with short stale-while-revalidate cache', function () {
-        const deps = makeDeps();
-        const stack = new FrontendStack(deps.app, 'TestFrontend', {
-            env: testEnv,
-            apiService: deps.apiService,
-            frontendSources: deps.frontendSources,
-        });
-        const template = Template.fromStack(stack);
+        const template = Template.fromStack(makeStack());
 
         template.hasResourceProperties('Custom::CDKBucketDeployment', {
             SystemMetadata: {
@@ -96,14 +60,7 @@ describe('FrontendStack', function () {
     });
 
     it('serves the SPA default behavior over HTTPS with compression enabled', function () {
-        const deps = makeDeps();
-        const stack = new FrontendStack(deps.app, 'TestFrontend', {
-            env: testEnv,
-            apiService: deps.apiService,
-            frontendSources: deps.frontendSources,
-        });
-
-        Template.fromStack(stack).hasResourceProperties(
+        Template.fromStack(makeStack()).hasResourceProperties(
             'AWS::CloudFront::Distribution',
             {
                 DistributionConfig: Match.objectLike({
@@ -116,19 +73,16 @@ describe('FrontendStack', function () {
         );
     });
 
-    it('routes /socket.io/* through the same App Runner origin', function () {
-        const deps = makeDeps();
-        const stack = new FrontendStack(deps.app, 'TestFrontend', {
-            env: testEnv,
-            apiService: deps.apiService,
-            frontendSources: deps.frontendSources,
-        });
-
-        Template.fromStack(stack).hasResourceProperties(
+    it('routes /api/* and /socket.io/* to the backend endpoint', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
             'AWS::CloudFront::Distribution',
             {
                 DistributionConfig: Match.objectLike({
+                    Origins: Match.arrayWith([
+                        Match.objectLike({ DomainName: 'api.example.com' }),
+                    ]),
                     CacheBehaviors: Match.arrayWith([
+                        Match.objectLike({ PathPattern: '/api/*' }),
                         Match.objectLike({ PathPattern: '/socket.io/*' }),
                     ]),
                 }),
@@ -136,15 +90,8 @@ describe('FrontendStack', function () {
         );
     });
 
-    it('routes /api/* to the App Runner origin with caching disabled and all HTTP methods', function () {
-        const deps = makeDeps();
-        const stack = new FrontendStack(deps.app, 'TestFrontend', {
-            env: testEnv,
-            apiService: deps.apiService,
-            frontendSources: deps.frontendSources,
-        });
-
-        Template.fromStack(stack).hasResourceProperties(
+    it('disables caching and allows all HTTP methods on the API behavior', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
             'AWS::CloudFront::Distribution',
             {
                 DistributionConfig: Match.objectLike({
@@ -169,31 +116,36 @@ describe('FrontendStack', function () {
         );
     });
 
-    it('rewrites 403 and 404 errors to /index.html with 200 (for SPA routing)', function () {
-        const deps = makeDeps();
-        const stack = new FrontendStack(deps.app, 'TestFrontend', {
-            env: testEnv,
-            apiService: deps.apiService,
-            frontendSources: deps.frontendSources,
-        });
-
-        Template.fromStack(stack).hasResourceProperties(
+    it('rewrites only 404 to /index.html so backend 403s reach the client intact', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
             'AWS::CloudFront::Distribution',
             {
                 DistributionConfig: Match.objectLike({
-                    CustomErrorResponses: Match.arrayWith([
-                        {
-                            ErrorCode: 403,
-                            ResponseCode: 200,
-                            ResponsePagePath: '/index.html',
-                            ErrorCachingMinTTL: 0,
-                        },
+                    CustomErrorResponses: [
                         {
                             ErrorCode: 404,
                             ResponseCode: 200,
                             ResponsePagePath: '/index.html',
                             ErrorCachingMinTTL: 0,
                         },
+                    ],
+                }),
+            },
+        );
+    });
+
+    it('lets the distribution list the bucket so missing objects return 404 rather than 403', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::S3::BucketPolicy',
+            {
+                PolicyDocument: Match.objectLike({
+                    Statement: Match.arrayWith([
+                        Match.objectLike({
+                            Action: 's3:ListBucket',
+                            Principal: {
+                                Service: 'cloudfront.amazonaws.com',
+                            },
+                        }),
                     ]),
                 }),
             },
@@ -201,13 +153,7 @@ describe('FrontendStack', function () {
     });
 
     it('grants the distribution access to the bucket via OAC (not OAI)', function () {
-        const deps = makeDeps();
-        const stack = new FrontendStack(deps.app, 'TestFrontend', {
-            env: testEnv,
-            apiService: deps.apiService,
-            frontendSources: deps.frontendSources,
-        });
-        const template = Template.fromStack(stack);
+        const template = Template.fromStack(makeStack());
 
         template.resourceCountIs('AWS::CloudFront::OriginAccessControl', 1);
         template.resourceCountIs(
@@ -217,13 +163,7 @@ describe('FrontendStack', function () {
     });
 
     it('creates a private S3 bucket that gets cleaned up on stack destroy', function () {
-        const deps = makeDeps();
-        const stack = new FrontendStack(deps.app, 'TestFrontend', {
-            env: testEnv,
-            apiService: deps.apiService,
-            frontendSources: deps.frontendSources,
-        });
-        const template = Template.fromStack(stack);
+        const template = Template.fromStack(makeStack());
 
         template.hasResourceProperties('AWS::S3::Bucket', {
             PublicAccessBlockConfiguration: {
