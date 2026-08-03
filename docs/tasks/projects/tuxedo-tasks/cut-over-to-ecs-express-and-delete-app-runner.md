@@ -6,12 +6,11 @@
 - Created: 2026-08-02
 - Due: 2026-08-03
 - Projects: +infra
-- Contexts: @ready-for-agent
 
 ## Task
 
 ```todo.txt
-(B) 2026-08-02 Infra step 4 of 6, cut CloudFront origin over to the Express service endpoint, scope errorResponses off API paths, verify websocket upgrade returns 101, then delete App Runner +infra @ready-for-agent due:2026-08-03 note:projects/tuxedo-tasks/cut-over-to-ecs-express-and-delete-app-runner.md
+(B) 2026-08-02 Infra step 4 of 6, cut CloudFront origin over to the Express service endpoint, scope errorResponses off API paths, verify websocket upgrade returns 101, then delete App Runner +infra due:2026-08-03 note:projects/tuxedo-tasks/cut-over-to-ecs-express-and-delete-app-runner.md
 ```
 
 ## My notes

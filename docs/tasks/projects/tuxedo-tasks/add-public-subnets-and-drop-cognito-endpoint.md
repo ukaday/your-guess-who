@@ -6,12 +6,11 @@
 - Created: 2026-08-02
 - Due: 2026-08-03
 - Projects: +infra
-- Contexts: @ready-for-agent
 
 ## Task
 
 ```todo.txt
-(B) 2026-08-02 Infra step 2 of 6, add public subnets and internet gateway to NetworkStack and remove the Cognito interface endpoint, Fargate tasks need egress that App Runner provided on its managed plane +infra @ready-for-agent due:2026-08-03 note:projects/tuxedo-tasks/add-public-subnets-and-drop-cognito-endpoint.md
+(B) 2026-08-02 Infra step 2 of 6, add public subnets and internet gateway to NetworkStack and remove the Cognito interface endpoint, Fargate tasks need egress that App Runner provided on its managed plane +infra due:2026-08-03 note:projects/tuxedo-tasks/add-public-subnets-and-drop-cognito-endpoint.md
 ```
 
 ## My notes

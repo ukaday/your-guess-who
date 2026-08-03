@@ -6,12 +6,11 @@
 - Created: 2026-08-02
 - Due: 2026-08-03
 - Projects: +infra
-- Contexts: @ready-for-agent
 
 ## Task
 
 ```todo.txt
-(B) 2026-08-02 Infra step 6 of 6, deploy BudgetStack sized for ECS and ALB rather than App Runner, exclude credits, keep the alert address in Parameter Store, restate credit runway at the new monthly total +infra @ready-for-agent due:2026-08-03 note:projects/tuxedo-tasks/resize-budgets-for-ecs-express.md
+(B) 2026-08-02 Infra step 6 of 6, deploy BudgetStack sized for ECS and ALB rather than App Runner, exclude credits, keep the alert address in Parameter Store, restate credit runway at the new monthly total +infra due:2026-08-03 note:projects/tuxedo-tasks/resize-budgets-for-ecs-express.md
 ```
 
 ## My notes

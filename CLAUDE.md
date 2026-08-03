@@ -129,10 +129,6 @@ Act as tutor — explain concepts and guide the user to write the code. Don't im
 
 Tasks live in `todo.txt` (todo.txt format, managed with tuxedo); per-ticket detail in `docs/tasks/projects/tuxedo-tasks/`. See `docs/agents/issue-tracker.md`.
 
-### Triage labels
-
-The canonical triage roles, written as todo.txt `@contexts`. No `wontfix`. See `docs/agents/triage-labels.md`.
-
 ### Domain docs
 
 Single-context. See `docs/agents/domain.md`.

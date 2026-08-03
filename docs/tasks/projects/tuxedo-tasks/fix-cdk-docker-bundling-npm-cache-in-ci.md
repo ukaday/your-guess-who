@@ -6,12 +6,12 @@
 - Created: 2026-08-02
 - Due: 2026-08-03
 - Projects: +cicd
-- Contexts: @blocker @ready-for-agent
+- Contexts: @blocker
 
 ## Task
 
 ```todo.txt
-(B) 2026-08-02 Infra step 1 of 6, fix CDK Docker bundling in CI, frontend asset bundling runs as runner UID with no home so npm cannot create its cache dir and every deploy fails before reaching AWS +cicd @blocker @ready-for-agent due:2026-08-03 note:projects/tuxedo-tasks/fix-cdk-docker-bundling-npm-cache-in-ci.md
+(B) 2026-08-02 Infra step 1 of 6, fix CDK Docker bundling in CI, frontend asset bundling runs as runner UID with no home so npm cannot create its cache dir and every deploy fails before reaching AWS +cicd @blocker due:2026-08-03 note:projects/tuxedo-tasks/fix-cdk-docker-bundling-npm-cache-in-ci.md
 ```
 
 ## My notes

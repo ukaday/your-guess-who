@@ -13,8 +13,7 @@ archived to `done.txt`.
   current phase of the project, not generic urgency.
 - Bare date after the priority — creation date.
 - `+project` — `+backend`, `+frontend`, `+infra`, `+cicd`.
-- `@context` — topic tags (`@security`, `@blocker`) and triage state
-  (see `triage-labels.md`).
+- `@context` — topic tags such as `@security` and `@blocker`.
 - `due:YYYY-MM-DD` — the backlog is worked in due-date order.
 - `note:<path>` — relative paths resolve under tuxedo's `notes_dir`.
 

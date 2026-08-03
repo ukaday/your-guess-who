@@ -6,12 +6,11 @@
 - Created: 2026-08-02
 - Due: 2026-08-03
 - Projects: +infra
-- Contexts: @ready-for-agent
 
 ## Task
 
 ```todo.txt
-(B) 2026-08-02 Infra step 3 of 6, migrate backend to ECS Express Mode, stand up CfnExpressGatewayService L1 alongside App Runner, single task, existing health path, task SG admits only the managed ALB +infra @ready-for-agent due:2026-08-03 note:projects/tuxedo-tasks/replace-app-runner-with-ecs-express-mode.md
+(B) 2026-08-02 Infra step 3 of 6, migrate backend to ECS Express Mode, stand up CfnExpressGatewayService L1 alongside App Runner, single task, existing health path, task SG admits only the managed ALB +infra due:2026-08-03 note:projects/tuxedo-tasks/replace-app-runner-with-ecs-express-mode.md
 ```
 
 ## My notes
