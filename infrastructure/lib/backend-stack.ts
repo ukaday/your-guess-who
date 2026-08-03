@@ -64,23 +64,11 @@ export class BackendStack extends cdk.Stack {
     }
 
     private createTaskSecurityGroup(vpc: ec2.IVpc): ec2.SecurityGroup {
-        const securityGroup = new ec2.SecurityGroup(
-            this,
-            'TaskSecurityGroup',
-            {
-                vpc,
-                description: 'ECS Express backend tasks',
-                allowAllOutbound: true,
-            },
-        );
-
-        securityGroup.addIngressRule(
-            ec2.Peer.ipv4(vpc.vpcCidrBlock),
-            ec2.Port.tcp(BackendStack.containerPort),
-            'ECS-managed load balancer to backend tasks',
-        );
-
-        return securityGroup;
+        return new ec2.SecurityGroup(this, 'TaskSecurityGroup', {
+            vpc,
+            description: 'ECS Express backend tasks',
+            allowAllOutbound: true,
+        });
     }
 
     private createExecutionRole(dbInstance: rds.DatabaseInstance): iam.Role {

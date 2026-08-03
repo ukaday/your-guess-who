@@ -135,18 +135,13 @@ describe('BackendStack', function () {
         );
     });
 
-    it('admits load balancer traffic to tasks only from inside the VPC', function () {
+    it('creates a task security group with egress but no ingress of its own, ECS Express manages the load balancer path', function () {
         Template.fromStack(makeStack()).hasResourceProperties(
             'AWS::EC2::SecurityGroup',
             {
                 GroupDescription: Match.stringLikeRegexp('ECS Express'),
-                SecurityGroupIngress: Match.arrayWith([
-                    Match.objectLike({
-                        FromPort: 3000,
-                        ToPort: 3000,
-                        IpProtocol: 'tcp',
-                    }),
-                ]),
+                SecurityGroupEgress: Match.anyValue(),
+                SecurityGroupIngress: Match.absent(),
             },
         );
     });
