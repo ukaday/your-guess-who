@@ -59,11 +59,15 @@ const frontendSources = [
     }),
 ];
 
-new FrontendStack(app, 'FrontendStack', {
+const legacyAppRunnerEndpoint = 'emjz65qj5y.us-east-2.awsapprunner.com';
+
+const frontend = new FrontendStack(app, 'FrontendStack', {
     env,
-    apiEndpoint: backend.serviceEndpoint,
+    apiEndpoint: legacyAppRunnerEndpoint,
     frontendSources,
 });
+
+backend.addDependency(frontend);
 
 new CicdStack(app, 'CicdStack', {
     env,
