@@ -100,11 +100,42 @@ your-guess-who/
 
 Task backlog lives in `todo.txt` at repo root — todo.txt format. Check it for pending work before proposing new tasks.
 
-**Priority criteria** (current phase: backend security → MVP frontend → hardening → future):
-- **(A)** — Backend security fixes required before the backend is safe to run/expose. Blocks all other work.
-- **(B)** — Minimum frontend build needed for a playable MVP end-to-end (routes, stores, socket client, uploads).
-- **(C)** — Backend/infra hardening + CI/CD that doesn't block MVP; do after (B) ships.
-- **(D)** — Post-MVP features and polish.
+**Priority criteria** — the letter is derived, never chosen. Every task carries one severity context and one type context; the matrix produces the letter.
+
+**Severity** — technical impact alone. Set once at triage; it does not move because the schedule moved.
+
+| Context | Meaning |
+|---------|---------|
+| `@sev1` | Exploitable today, data loss, or a core flow broken for everyone |
+| `@sev2` | Broken with no workaround, contained blast radius |
+| `@sev3` | Degraded, or a real gap with no reachable exploit; workaround exists |
+| `@sev4` | Cosmetic, no user impact |
+
+**Type** — what the ticket is.
+
+| Context | Meaning |
+|---------|---------|
+| `@bug` | Shipped behaviour is wrong or broken, whether it ever worked or not |
+| `@security` | Hardening or defense-in-depth with no live exploit path |
+| `@feature` | Net-new capability |
+| `@chore` | Tooling, dependencies, cleanup, docs, cost control |
+
+**Matrix** — severity sets the level; type caps it.
+
+| | `@bug` | `@security` | `@feature` | `@chore` |
+|---|---|---|---|---|
+| **`@sev1`** | (A) | (A) | (C) | (C) |
+| **`@sev2`** | (B) | (B) | (C) | (C) |
+| **`@sev3`** | (C) | (C) | (C) | (D) |
+| **`@sev4`** | (D) | (D) | (D) | (D) |
+
+`@feature` and `@chore` can never reach (A) or (B) — new work does not jump an open break. A `@feature` that feels (A)-urgent is mis-typed: it is a `@bug` or a `@security` ticket.
+
+For a `@feature`, severity is the impact of its **absence**. A missing capability that costs a player their game is `@sev3`; one the game plays fine without is `@sev4`.
+
+A tag is not a priority. `@security` on its own says nothing about ordering — an unreachable validation gap is `@sev3` and lands at (C); a live auth bypass is `@sev1` and lands at (A). Argue the severity, not the letter.
+
+`@blocker` and `@cicd` remain free-form topic contexts. They carry no weight in the matrix.
 
 ## Collaboration
 
@@ -127,7 +158,7 @@ Act as tutor — explain concepts and guide the user to write the code. Don't im
 
 ### Issue tracker
 
-Tasks live in `todo.txt` (todo.txt format, managed with tuxedo); per-ticket detail in `docs/tasks/projects/tuxedo-tasks/`. See `docs/agents/issue-tracker.md`.
+Tasks live in `todo.txt` (todo.txt format, managed with tuxedo); per-ticket detail in `docs/tasks/projects/tuxedo-tasks/`. Priority letters are derived from the severity × type matrix above, never set by hand. See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 

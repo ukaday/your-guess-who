@@ -8,30 +8,44 @@ x 2026-08-02 2026-08-02 Infra step 3 of 6, migrate backend to ECS Express Mode, 
 x 2026-08-02 2026-08-02 Infra step 4 of 6, cut CloudFront origin over to the Express service endpoint, scope errorResponses off API paths, verify websocket upgrade returns 101, then delete App Runner +infra due:2026-08-03 note:projects/tuxedo-tasks/cut-over-to-ecs-express-and-delete-app-runner.md
 x 2026-08-02 2026-08-02 Infra step 5 of 6, add deployed CloudFront origin to StorageStack bucket CORS allowedOrigins, currently only http://localhost:5173 so pre-signed PUT uploads fail preflight in prod +infra @blocker due:2026-08-03
 x 2026-08-02 2026-08-02 Infra step 6 of 6, deploy BudgetStack sized for ECS and ALB rather than App Runner, exclude credits, keep the alert address in Parameter Store, restate credit runway at the new monthly total +infra due:2026-08-03 note:projects/tuxedo-tasks/resize-budgets-for-ecs-express.md
-(A) 2026-07-30 Add zod validation on all REST bodies and socket payloads, enforce configured max card/deck name lengths +backend @security due:2026-08-16
-(A) 2026-07-30 Reject imageKey values outside caller's own cards/<userId>/ prefix on card create +backend @security due:2026-08-23 note:projects/tuxedo-tasks/reject-imagekey-values-outside-caller-s-own-cards-userid-prefix-on-card-create.md
-(A) 2026-07-30 Switch /images/upload-url to pre-signed POST with content-length-range and image-only content types +backend @security due:2026-08-30
-(A) 2026-07-30 Make game start atomic in game:join and REST joinGame: transaction + conditional updateMany where status LOBBY, count 0 = lost race +backend @security due:2026-09-06
-(B) 2026-07-30 Build Pinia stores: authStore, deckStore, gameStore +frontend due:2026-09-20
-(B) 2026-07-30 Build Vue Router routes and views: Home, Login, Register, DeckList, DeckEditor, CreateGame, JoinGame, GameLobby, GameBoard +frontend due:2026-10-04
-(B) 2026-07-30 Build shared Socket.io client: init on game join, teardown on leave, wire emit/listen events, default transports now that the ALB forwards upgrades +frontend due:2026-10-11
-(B) 2026-07-30 Build card image upload flow: request pre-signed URL, PUT direct to S3, needs the StorageStack CORS fix already deployed +frontend due:2026-10-18
-(C) 2026-08-02 Pin GitHub Actions to full commit SHAs instead of mutable v4/v6/v2 tags, deploy jobs hold admin-equivalent role +cicd @security due:2026-11-01
-(C) 2026-07-30 Add express-rate-limit on /auth/login /auth/register /games/join and widen invite-code alphabet, first add a CloudFront origin request policy forwarding CloudFront-Viewer-Address and read the client IP from it, trust proxy is unset and ALL_VIEWER_EXCEPT_HOST_HEADER passes a spoofable X-Forwarded-For +backend @security due:2026-11-08
-(C) 2026-07-30 Switch AuthStack Cognito pool removalPolicy to RETAIN before real users exist +infra due:2026-11-15
-(C) 2026-07-30 Align Postgres versions: RDS pins 15, local Docker runs 17, CI service container runs 16 +infra due:2026-11-15
-(C) 2026-07-30 Deploy backend images to ECS Express by commit SHA or digest instead of mutable latest tag +infra due:2026-11-22
-(C) 2026-07-30 Re-validate JWT periodically on long-lived sockets or disconnect on expiry +backend @security due:2026-11-29
-(C) 2026-07-30 Retry invite code generation on P2002 unique constraint collision +backend due:2026-12-06
-(C) 2026-07-30 Fix socket ack reliability: ack in finally so rejected handlers still ack, add client emitWithAck timeout +backend due:2026-12-06
-(C) 2026-07-30 Replace game status string literals with generated GameStatus enum const +backend due:2026-12-13
-(C) 2026-07-30 Add ECR lifecycle policy to expire untagged image layers so CI pushes stop piling up storage cost +infra @cicd due:2026-12-20
-(C) 2026-08-02 Add shared Socket.io adapter so rooms survive across tasks, required before ECS Express maxTaskCount can go above 1 +backend due:2027-01-10
-(D) 2026-07-30 Persist eliminated cards in GamePlayerCard join table for reconnect restore and visible opponent board +backend due:2027-01-17
-(D) 2026-07-30 Add game:concede event, extend game:over payload with reason CONCEDE or GUESS +backend due:2027-01-31
-(D) 2026-07-30 Extend game:over with revealedCards payload for end-of-game reveal +backend due:2027-02-14
-(D) 2026-07-30 Add rematch flow: post-game socket event creates new game with same deck +backend due:2027-02-28
-(D) 2026-07-30 Add spectators: read-only socket room members with relaxed game:join check +backend due:2027-03-14
-(C) 2026-08-02 Smoke test the backend image in Deploy Backend before tagging latest, the workflow pushes without ever starting the container so a broken image shipped undetected and only surfaced when ECS crash-looped hours later +cicd due:2026-11-05 note:projects/tuxedo-tasks/smoke-test-backend-image-before-tagging-latest.md
-(C) 2026-08-02 Set CloudWatch log retention on the ECS Express service log group, retentionInDays is unset so logs are kept forever and storage grows unbounded +infra due:2026-12-27 note:projects/tuxedo-tasks/set-log-retention-on-ecs-service-log-group.md
-(D) 2026-07-30 Add cleanup job: archive or purge FINISHED games older than 30 days +backend due:2027-03-21
+(A) 2026-08-04 Socket handlers void their promises with no catch so any rejection becomes an unhandled rejection and kills the single ECS task +backend @sev1 @bug due:2026-08-15 note:projects/tuxedo-tasks/socket-handlers-void-promises-so-any-rejection-crashes-the-process.md
+(A) 2026-08-04 Build a GameView projection module so Prisma rows never cross the wire, getGame includes every GamePlayer column so either player can read the opponent secretCardId and win on the next guess +backend @sev1 @security due:2026-08-22 note:projects/tuxedo-tasks/get-game-returns-both-players-secret-cards.md
+(D) 2026-08-11 Rename the game:eliminate socket event to game:end-turn, the event carries no card id and only advances the turn so its name claims a server-side elimination that does not exist +backend @sev4 @chore due:2026-08-23 note:projects/tuxedo-tasks/rename-game-eliminate-to-game-end-turn.md
+(B) 2026-07-30 Make game start a conditional DB transition and deliver state as a self-snapshot to every socket joining the room, room arrival currently triggers the start so a lost race can leave a player in a dead lobby +backend @sev2 @bug due:2026-09-01 note:projects/tuxedo-tasks/make-game-start-atomic-against-concurrent-join.md
+(C) 2026-07-30 Reject imageKey values outside caller's own cards/<userId>/ prefix on card create +backend @sev3 @security due:2026-09-08 note:projects/tuxedo-tasks/reject-imagekey-values-outside-caller-s-own-cards-userid-prefix-on-card-create.md
+(C) 2026-08-11 Serve card images through CloudFront with an Origin Access Control and deliver a same-origin path instead of imageKey, no read path exists anywhere so no card image can render +infra @sev3 @feature due:2026-09-08 note:projects/tuxedo-tasks/serve-card-images-through-cloudfront-oac.md
+(B) 2026-08-02 Smoke test the backend image in Deploy Backend before tagging latest, the workflow pushes without ever starting the container so a broken image shipped undetected and only surfaced when ECS crash-looped hours later +cicd @sev2 @bug due:2026-09-12 note:projects/tuxedo-tasks/smoke-test-backend-image-before-tagging-latest.md
+(D) 2026-08-11 Convert the repo to an npm workspace and move the wire contract into packages/contract, the Docker build context is backend/ so COPY paths rootDir and the CI path filters all move +cicd @sev3 @chore due:2026-09-16 note:projects/tuxedo-tasks/npm-workspace-and-shared-contract-package.md
+(B) 2026-07-30 Deploy backend images to ECS Express by commit SHA or digest instead of mutable latest tag +infra @sev2 @bug due:2026-09-18 note:projects/tuxedo-tasks/deploy-backend-images-by-immutable-digest.md
+(C) 2026-08-11 Return the session expiry with the access token and set the refresh token in an httpOnly cookie, login discards ExpiresIn and RefreshToken so a client cannot know when its session dies or renew it +backend @sev3 @feature due:2026-09-23 note:projects/tuxedo-tasks/session-carries-its-own-lifetime.md
+(B) 2026-08-04 Enforce a minimum deck size before a game can start, nothing checks card count so selectSecretCards throws on a deck with fewer than two cards +backend @sev2 @bug due:2026-09-26 note:projects/tuxedo-tasks/enforce-minimum-deck-size-before-a-game-can-start.md
+(B) 2026-08-04 Block deleting a card that is a live game's secret card, GamePlayer_secretCardId_fkey is ON DELETE SET NULL so the deck owner can silently make an in-progress game unwinnable +backend @sev2 @bug due:2026-09-29 note:projects/tuxedo-tasks/block-deleting-a-card-that-is-a-live-games-secret-card.md
+(C) 2026-07-30 Parse all REST bodies and socket payloads with zod at the seam and enforce the configured max card and deck name lengths, socket payloads are never inspected at all today +backend @sev3 @security due:2026-10-01 note:projects/tuxedo-tasks/parse-rest-and-socket-payloads-at-the-seam.md
+(B) 2026-08-04 Deleting a deck that has cards returns 500, Card_deckId_fkey is ON DELETE RESTRICT so DELETE /api/decks/:id fails for every non-empty deck and a deck used in any game can never be deleted at all +backend @sev2 @bug due:2026-10-03 note:projects/tuxedo-tasks/deleting-a-deck-with-cards-returns-500.md
+(C) 2026-08-04 Delete S3 objects when cards and decks are deleted, deleteCard removes the row and never touches the bucket so every image ever uploaded is retained forever +backend @sev3 @bug due:2026-10-06 note:projects/tuxedo-tasks/delete-s3-objects-when-cards-and-decks-are-deleted.md
+(B) 2026-07-30 Switch /images/upload-url to pre-signed POST with content-length-range and image-only content types +backend @sev2 @security due:2026-10-11 note:projects/tuxedo-tasks/pre-signed-post-with-content-length-range-for-image-upload.md
+(B) 2026-07-30 Add express-rate-limit on /auth/login /auth/register /games/join and widen invite-code alphabet, first add a CloudFront origin request policy forwarding CloudFront-Viewer-Address and read the client IP from it, trust proxy is unset and ALL_VIEWER_EXCEPT_HOST_HEADER passes a spoofable X-Forwarded-For +backend @sev2 @security due:2026-10-19 note:projects/tuxedo-tasks/rate-limit-auth-and-join-on-a-trustworthy-client-ip.md
+(C) 2026-08-04 Exclude secretCardId from the game:started socket payload type, GameSnapshotPayload is Game and GamePlayer[] so the type promises the whole room both players' secret cards +backend @sev3 @security due:2026-10-21 note:projects/tuxedo-tasks/exclude-secretcardid-from-the-game-started-socket-payload-type.md
+(C) 2026-08-04 Make /api/health verify the database connection, it returns ok unconditionally so ECS keeps a task in service when Postgres is unreachable +backend @sev3 @bug due:2026-10-24
+(C) 2026-07-30 Build Pinia stores: authStore, deckStore, gameStore +frontend @sev2 @feature due:2026-11-06
+(C) 2026-08-11 Make card images secret with CloudFront signed cookies, the OAC path is unauthenticated so a card image URL that escapes stays valid forever +infra @sev3 @security due:2026-11-20 note:projects/tuxedo-tasks/make-card-images-secret-with-signed-cookies.md
+(C) 2026-07-30 Build Vue Router routes and views: Home, Login, Register, DeckList, DeckEditor, CreateGame, JoinGame, GameLobby, GameBoard +frontend @sev2 @feature due:2026-11-21
+(C) 2026-07-30 Build shared Socket.io client: init on game join, teardown on leave, wire emit/listen events, default transports now that the ALB forwards upgrades +frontend @sev2 @feature due:2026-11-28
+(C) 2026-07-30 Build card image upload flow: request pre-signed URL, PUT direct to S3, needs the StorageStack CORS fix already deployed +frontend @sev2 @feature due:2026-12-03
+(C) 2026-07-30 Switch AuthStack Cognito pool removalPolicy to RETAIN before real users exist +infra @sev3 @bug due:2026-12-05
+(C) 2026-07-30 Re-validate JWT periodically on long-lived sockets or disconnect on expiry +backend @sev3 @security due:2026-12-10
+(C) 2026-07-30 Retry invite code generation on P2002 unique constraint collision +backend @sev3 @bug due:2026-12-12
+(C) 2026-07-30 Fix socket ack reliability: ack in finally so rejected handlers still ack, add client emitWithAck timeout +backend @sev3 @bug due:2026-12-16
+(C) 2026-08-02 Pin GitHub Actions to full commit SHAs instead of mutable v4/v6/v2 tags, deploy jobs hold admin-equivalent role +cicd @sev3 @security due:2026-12-19
+(C) 2026-08-02 Add shared Socket.io adapter so rooms survive across tasks, required before ECS Express maxTaskCount can go above 1 +backend @sev3 @feature due:2026-12-27
+(C) 2026-07-30 Persist eliminated cards in GamePlayerCard join table for reconnect restore and visible opponent board +backend @sev3 @feature due:2027-01-02
+(D) 2026-07-30 Align Postgres versions: RDS pins 15, local Docker runs 17, CI service container runs 16 +infra @sev3 @chore due:2027-01-05
+(D) 2026-07-30 Replace game status string literals with generated GameStatus enum const +backend @sev4 @chore due:2027-01-07
+(D) 2026-07-30 Add ECR lifecycle policy to expire untagged image layers so CI pushes stop piling up storage cost +infra @sev3 @chore due:2027-01-09
+(D) 2026-08-02 Set CloudWatch log retention on the ECS Express service log group, retentionInDays is unset so logs are kept forever and storage grows unbounded +infra @sev3 @chore due:2027-01-11 note:projects/tuxedo-tasks/set-log-retention-on-ecs-service-log-group.md
+(D) 2026-08-04 Return 400 not 500 for malformed JSON bodies, the body-parser SyntaxError is not an HttpError so createErrorHandler logs it and answers 500 +backend @sev4 @bug due:2027-01-12
+(D) 2026-07-30 Add game:concede event, extend game:over payload with reason CONCEDE or GUESS +backend @sev4 @feature due:2027-01-16
+(D) 2026-07-30 Extend game:over with revealedCards payload for end-of-game reveal +backend @sev4 @feature due:2027-01-19
+(D) 2026-07-30 Add rematch flow: post-game socket event creates new game with same deck +backend @sev4 @feature due:2027-01-24
+(D) 2026-07-30 Add spectators: read-only socket room members with relaxed game:join check +backend @sev4 @feature due:2027-01-30
+(D) 2026-07-30 Add cleanup job: archive or purge FINISHED games older than 30 days +backend @sev4 @chore due:2027-02-03

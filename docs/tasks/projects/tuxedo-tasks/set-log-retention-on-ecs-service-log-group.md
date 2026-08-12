@@ -2,18 +2,28 @@
 
 ## Metadata
 
-- Priority: C
+- Priority: D
 - Created: 2026-08-02
-- Due: 2026-12-27
+- Due: 2027-01-11
 - Projects: +infra
+- Contexts: @sev3, @chore
 
 ## Task
 
 ```todo.txt
-(C) 2026-08-02 Set CloudWatch log retention on the ECS Express service log group, retentionInDays is unset so logs are kept forever and storage grows unbounded +infra due:2026-12-27 note:projects/tuxedo-tasks/set-log-retention-on-ecs-service-log-group.md
+(D) 2026-08-02 Set CloudWatch log retention on the ECS Express service log group, retentionInDays is unset so logs are kept forever and storage grows unbounded +infra @sev3 @chore due:2027-01-11 note:projects/tuxedo-tasks/set-log-retention-on-ecs-service-log-group.md
 ```
 
 ## My notes
+
+### Why `@sev3 @chore`, demoted from (C)
+
+Cost control on a growth curve that is currently negligible. Nothing is broken,
+nothing is exposed, and the consequence of leaving it is a slowly rising storage
+line, not an outage. `@chore` at `@sev3` caps at (D) by the matrix.
+
+The `due:` date is what keeps this from being forgotten — (D) is an ordering
+bucket, not a wontfix.
 
 ### Why
 

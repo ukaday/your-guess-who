@@ -6,16 +6,30 @@ archived to `done.txt`.
 
 ## Anatomy of a task line
 
-    (B) 2026-08-02 Port backend to ECS Express Mode +infra @ready-for-agent
+    (B) 2026-08-02 Port backend to ECS Express Mode +infra @sev2 @bug
     due:2026-08-09 note:projects/tuxedo-tasks/port-backend-to-ecs-express-mode.md
 
-- `(A)`–`(D)` — priority. Criteria are defined in `CLAUDE.md`; they encode the
-  current phase of the project, not generic urgency.
+- `(A)`–`(D)` — priority. **Derived, never chosen.** The severity × type matrix
+  in `CLAUDE.md` produces it; changing a letter means changing a severity or a
+  type and saying why.
 - Bare date after the priority — creation date.
 - `+project` — `+backend`, `+frontend`, `+infra`, `+cicd`.
-- `@context` — topic tags such as `@security` and `@blocker`.
+- `@context` — every task carries exactly one severity (`@sev1`–`@sev4`) and
+  exactly one type (`@bug`, `@security`, `@feature`, `@chore`). Free-form topic
+  tags such as `@blocker` may follow; they carry no priority weight.
 - `due:YYYY-MM-DD` — the backlog is worked in due-date order.
 - `note:<path>` — relative paths resolve under tuxedo's `notes_dir`.
+
+## Severity and type are the argument
+
+The letter is an output. When a task's ordering looks wrong, do not edit the
+letter — establish which severity or type is misassigned, correct that, and let
+the matrix re-derive. A ticket whose letter disagrees with its tags is a bug in
+the backlog.
+
+Severity answers *how bad is this technically*, independent of when it is
+convenient to fix. Type answers *what kind of work is this*. Neither is a
+statement about the schedule; `due:` is.
 
 ## Where notes live
 
@@ -60,7 +74,7 @@ Generated shape:
     - Created: 2026-08-02
     - Due: 2026-08-09
     - Projects: +infra
-    - Contexts: @ready-for-agent
+    - Contexts: @sev2, @bug
 
     ## Task
 

@@ -2,18 +2,29 @@
 
 ## Metadata
 
-- Priority: C
+- Priority: B
 - Created: 2026-08-02
-- Due: 2026-11-05
+- Due: 2026-09-12
 - Projects: +cicd
+- Contexts: @sev2, @bug
 
 ## Task
 
 ```todo.txt
-(C) 2026-08-02 Smoke test the backend image in Deploy Backend before tagging latest, the workflow pushes without ever starting the container so a broken image shipped undetected and only surfaced when ECS crash-looped hours later +cicd due:2026-11-05 note:projects/tuxedo-tasks/smoke-test-backend-image-before-tagging-latest.md
+(B) 2026-08-02 Smoke test the backend image in Deploy Backend before tagging latest, the workflow pushes without ever starting the container so a broken image shipped undetected and only surfaced when ECS crash-looped hours later +cicd @sev2 @bug due:2026-09-12 note:projects/tuxedo-tasks/smoke-test-backend-image-before-tagging-latest.md
 ```
 
 ## My notes
+
+### Why `@sev2 @bug`, promoted from (C)
+
+Not hypothetical hardening — this gap already shipped a broken image to
+production once, on 2026-08-02, and nothing in the pipeline noticed. The
+workflow has a defect: it tags `latest` on an artifact it never executed. There
+is no workaround short of a human remembering to test by hand.
+
+Contained blast radius rather than `@sev1` because the damage is bounded to a
+failed deploy that is visible and reversible, with no data loss and no exposure.
 
 ### What happened
 
