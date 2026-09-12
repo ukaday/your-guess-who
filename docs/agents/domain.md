@@ -19,10 +19,10 @@ them lazily when terms or decisions actually get resolved.
 
 ## Note on file naming
 
-This repo has a lowercase `context.md` at the root. That is **not** a domain
-doc — it is a gitignored file holding local AWS resource identifiers. The
-domain glossary described here is `CONTEXT.md`, uppercase. They are distinct
-files; do not conflate or merge them.
+The domain glossary is `CONTEXT.md`, uppercase. Local AWS resource identifiers
+live in a separate gitignored file, `aws-resources.local.md`, which is **not** a
+domain doc. Never create a lowercase `context.md`: macOS filesystems are
+case-insensitive, so it would be the same file as `CONTEXT.md`.
 
 ## File structure
 

@@ -8,6 +8,6 @@ coverage/
 cdk.out/
 cdk.context.json
 .claude
-context.md
+aws-resources.local.md
 docs/learning/
 docs/adr/

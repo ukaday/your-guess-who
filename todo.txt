@@ -39,7 +39,7 @@ x 2026-08-02 2026-08-02 Infra step 6 of 6, deploy BudgetStack sized for ECS and 
 (C) 2026-08-02 Pin GitHub Actions to full commit SHAs instead of mutable v4/v6/v2 tags, deploy jobs hold admin-equivalent role +cicd @sev3 @security due:2026-12-19
 (C) 2026-08-02 Add shared Socket.io adapter so rooms survive across tasks, required before ECS Express maxTaskCount can go above 1 +backend @sev3 @feature due:2026-12-27
 (C) 2026-07-30 Persist eliminated cards in GamePlayerCard join table for reconnect restore and visible opponent board +backend @sev3 @feature due:2027-01-02
-(D) 2026-07-30 Align Postgres versions: RDS pins 15, local Docker runs 17, CI service container runs 16 +infra @sev3 @chore due:2027-01-05
+x 2026-09-12 2026-07-30 Align Postgres versions: RDS pins 15, local Docker runs 17, CI service container runs 16 +infra @sev3 @chore due:2027-01-05
 (D) 2026-07-30 Replace game status string literals with generated GameStatus enum const +backend @sev4 @chore due:2027-01-07
 (D) 2026-07-30 Add ECR lifecycle policy to expire untagged image layers so CI pushes stop piling up storage cost +infra @sev3 @chore due:2027-01-09
 (D) 2026-08-02 Set CloudWatch log retention on the ECS Express service log group, retentionInDays is unset so logs are kept forever and storage grows unbounded +infra @sev3 @chore due:2027-01-11 note:projects/tuxedo-tasks/set-log-retention-on-ecs-service-log-group.md

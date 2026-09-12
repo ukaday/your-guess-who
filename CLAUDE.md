@@ -1,6 +1,7 @@
 # CLAUDE.md
 
-@context.md
+@CONTEXT.md
+@aws-resources.local.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -9,39 +10,70 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Backend** (`backend/`)
 ```bash
 npm run dev       # tsx watch (hot reload)
-npm run build     # prettier → eslint → tsc → vitest run
+npm run build     # prettier --write → eslint → tsc → vitest run --coverage
 npm run format    # prettier --write src
-npm run test      # vitest run
-npm start         # node dist/index.js
+npm run test      # vitest run --coverage (100% thresholds)
+npm start         # node dist/server.js
 ```
 
 **Frontend** (`frontend/`)
 ```bash
-npm run dev       # vite dev server (localhost:5173)
-npm run build     # vue-tsc + vite build → dist/
+npm run dev       # vite dev server (localhost:5173), proxies /api to BACKEND_URL
+npm run build     # prettier --write → eslint → vue-tsc → vite build → vitest run --coverage
+npm run format    # prettier --write src tests
 npm run test      # vitest run --coverage
 ```
 
 **Infrastructure** (`infrastructure/`)
 ```bash
+npm test          # vitest CDK assertion tests
 npx cdk diff      # show pending changes
-npx cdk deploy    # deploy all stacks
+npx cdk deploy    # deploy stacks
 npx cdk destroy   # tear down stacks
 ```
+
+CDK targets whichever account and region the AWS CLI is signed in to (`CDK_DEFAULT_ACCOUNT` / `CDK_DEFAULT_REGION`). Everything is deployed to `us-east-2`.
 
 ## Local Dev
 
 DB runs in Docker (`docker-compose.yml` at repo root). Backend and frontend run natively for hot reload.
 
+1. `docker compose up -d` at the repo root
+2. Copy `backend/.env.example` and `frontend/.env.example` to `.env` in the same folder and fill in the blanks
+3. `backend/`: `npx prisma generate && npx prisma migrate deploy`, then `npm run dev`
+4. `frontend/`: `npm run dev`
+
+There is no separate dev environment. Only the database is local: local dev signs users up in the deployed Cognito pool and uploads to the deployed S3 bucket, using the AWS CLI's credentials (`aws login`).
+
 ## Architecture
 
 Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm packages.
 
-**Backend** — Express + Socket.io on single HTTP server. Entry: `src/server.ts` (port binding, Socket.io) + `src/app.ts` (`createApp(prisma, cognito, corsOrigin)` factory). Layered: `src/lib/` (env, db, cognito singletons), `src/middleware/` (Express auth + Socket.io auth), `src/routes/` (thin handlers via `handleError`), `src/services/` (business logic, injected deps), `src/socket/` (Socket.io event handlers), `src/utils/` (shared helpers). Socket.io rooms per game (`game:<id>`). JWT passed as `auth.token` in handshake, validated by `createSocketAuthMiddleware`. Prisma 7 via `@prisma/adapter-pg`. AWS SDK v3 for Cognito auth + S3 pre-signed URLs.
+**Backend** — Express + Socket.io on single HTTP server. Entry: `src/server.ts` (port binding, Socket.io) + `src/app.ts` (`createApp(prisma, cognito, s3, s3Bucket, corsOrigin)` factory). Layered: `src/lib/` (env, db, cognito, s3 singletons), `src/middleware/` (Express auth, Socket.io auth, error handler), `src/routes/` (thin handlers; errors propagate to `createErrorHandler`), `src/services/` (business logic, injected deps), `src/socket/` (Socket.io event handlers), `src/utils/` (shared helpers, `HttpError`). Socket.io rooms per game (`game:<id>`). JWT passed as `auth.token` in handshake, validated by `createSocketAuthMiddleware`. Prisma 7 via `@prisma/adapter-pg`. AWS SDK v3 for Cognito auth + S3 pre-signed URLs. Config is environment variables read by `src/lib/env.ts`: locally from `.env` via dotenv; deployed, from the ECS container environment, with DB credentials injected from Secrets Manager as `DB_*`.
 
-**Frontend** — Vue 3 + Vite + TypeScript. Pinia stores: `authStore`, `deckStore`, `gameStore`. One shared Socket.io client, init on game join, torn down on leave. Card images upload direct to S3 via pre-signed URL (never through app server). Vite proxy `/api` → `http://localhost:3000` for local dev.
+**Frontend** — Vue 3 + Vite + TypeScript. Still the Vite scaffold (`App.vue`, `components/HelloWorld.vue`); the app itself is tracked in `todo.txt`. Planned: Pinia stores `authStore`, `deckStore`, `gameStore`; one shared Socket.io client, init on game join, torn down on leave; card images upload direct to S3 via pre-signed URL (never through app server). Locally, Vite proxies `/api` → `BACKEND_URL`. Deployed, CloudFront serves the SPA from S3 and routes `/api/*` and `/socket.io/*` to the backend, so both share one origin.
 
-**Infrastructure** — AWS CDK (`infrastructure/`). Entry: `bin/app.ts`. Stack definitions: `lib/`. Six stacks: Network, Database (RDS PostgreSQL), Storage (S3 images), Auth (Cognito), Backend (App Runner + ECR), Frontend (S3 + CloudFront). Deployed manually via `npx cdk deploy` — no deploy automation yet. The only workflow is `.github/workflows/backend-ci.yml` (backend lint/build/test against a Postgres service container); OIDC-based deploy workflows are tracked in `todo.txt`.
+**Infrastructure** — AWS CDK (`infrastructure/`). Entry: `bin/app.ts`. Stack definitions: `lib/`. Assertion tests: `tests/`. Eight stacks:
+
+| Stack | Contents |
+|---|---|
+| `NetworkStack` | VPC: public subnets for backend tasks, isolated subnets for the database |
+| `DatabaseStack` | RDS PostgreSQL 15, credentials generated into Secrets Manager |
+| `StorageStack` | S3 card-image bucket, CORS for the CloudFront origin and `localhost:5173` |
+| `AuthStack` | Cognito user pool + app client |
+| `BackendStack` | ECS Express Mode service running `your-guess-who-backend:latest` from ECR (repository created by hand, not by CDK) |
+| `FrontendStack` | S3 + CloudFront for the SPA, `/api/*` and `/socket.io/*` routed to the backend |
+| `CicdStack` | GitHub OIDC provider + `github-actions-deploy` role, assumable only from `master` |
+| `BudgetStack` | AWS Budgets alerts, address read from SSM `/your-guess-who/budget-alert-email` |
+
+**CI/CD** — GitHub Actions. Deploy workflows authenticate through the OIDC role; no AWS secrets are stored in GitHub.
+
+| Workflow | Trigger | Does |
+|---|---|---|
+| `backend-ci.yml` | push + PR touching `backend/` | lint/build/test against a Postgres service container |
+| `backend.yml` | push to `master` touching `backend/` | build image, push to ECR as `latest` |
+| `frontend.yml` | push to `master` touching `frontend/` | `cdk deploy FrontendStack` (bundles the frontend in Docker) |
+| `infrastructure.yml` | push to `master` touching `infrastructure/` | `cdk deploy --all` |
 
 **Auth** — Cognito issues JWTs. Username + password only — no email or personal data. Backend validates via Cognito JWKS per request. Local DB `users` table mirrors Cognito sub as PK.
 
@@ -49,27 +81,35 @@ Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm package
 
 ```
 your-guess-who/
-├── docker-compose.yml
-├── context.md                        # gitignored — local AWS resource IDs
+├── docker-compose.yml                # local Postgres
+├── CONTEXT.md                        # domain glossary
+├── aws-resources.local.md            # gitignored — local AWS resource IDs
 ├── CLAUDE.md
 ├── todo.txt                          # task backlog (todo.txt format, managed with tuxedo)
+├── done.txt                          # archived completed tasks
 ├── .github/
 │   └── workflows/
-│       └── backend-ci.yml            # backend lint/build/test on push + PR
+│       ├── backend-ci.yml            # backend lint/build/test on push + PR
+│       ├── backend.yml               # push backend image to ECR on master
+│       ├── frontend.yml              # deploy FrontendStack on master
+│       └── infrastructure.yml        # deploy all stacks on master
 ├── docs/
-│   ├── business-requirements.md
-│   ├── technical-design.md
-│   ├── program-plan.md
-│   └── bootstrap-instructions.md
+│   ├── adr/                          # architecture decision records
+│   ├── agents/                       # how agent skills use docs and the tracker
+│   ├── tasks/                        # per-ticket notes for todo.txt
+│   ├── bootstrap-instructions.md
+│   └── technical-design.md
 ├── backend/
+│   ├── .env.example
+│   ├── Dockerfile
 │   ├── prisma/
 │   │   ├── schema.prisma
 │   │   └── migrations/
 │   ├── src/
 │   │   ├── server.ts                 # port binding, Socket.io init
 │   │   ├── app.ts                    # createApp factory, route mounting
-│   │   ├── lib/                      # singletons (env, db, cognito)
-│   │   ├── middleware/               # Express + Socket.io auth middleware
+│   │   ├── lib/                      # singletons (env, db, cognito, s3)
+│   │   ├── middleware/               # Express + Socket.io auth, error handler
 │   │   ├── routes/                   # thin Express handlers
 │   │   ├── services/                 # business logic, injected deps
 │   │   ├── socket/                   # Socket.io event handlers
@@ -78,11 +118,15 @@ your-guess-who/
 │   └── tests/
 │       ├── middleware/
 │       ├── services/
+│       ├── socket/
 │       └── utils/
 ├── frontend/
-│   └── src/
-│       ├── main.ts
-│       └── App.vue
+│   ├── .env.example
+│   ├── src/
+│   │   ├── main.ts
+│   │   ├── App.vue
+│   │   └── components/
+│   └── tests/
 └── infrastructure/
     ├── bin/app.ts                    # CDK entry point
     ├── lib/                          # stack definitions
@@ -93,10 +137,9 @@ your-guess-who/
 
 | File | Contents |
 |------|----------|
-| `docs/business-requirements.md` | Game rules, deck/card constraints, gameplay mechanics |
-| `docs/technical-design.md` | Spec: migrate backend off App Runner to ECS Express Mode |
-| `docs/program-plan.md` | Phased build plan with canary gates |
+| `docs/technical-design.md` | Spec for the App Runner → ECS Express Mode migration (completed) |
 | `docs/bootstrap-instructions.md` | One-time manual AWS + GitHub setup steps |
+| `docs/adr/` | Architecture decision records |
 
 Task backlog lives in `todo.txt` at repo root — todo.txt format. Check it for pending work before proposing new tasks.
 
