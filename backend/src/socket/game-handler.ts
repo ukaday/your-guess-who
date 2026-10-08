@@ -18,22 +18,26 @@ import {
     decideEliminateOutcome,
     decideGuessOutcome,
 } from '../services/game-logic.js';
+import { createHandlerGuard, type ErrorLogger } from './guard-handler.js';
 
 export function registerGameHandlers(
     io: GameServer,
     socket: GameSocket,
     prisma: PrismaClient,
+    logger: ErrorLogger,
 ) {
+    const guard = createHandlerGuard(socket, logger);
+
     socket.on('game:join', (payload, ack) => {
-        void onGameJoin(io, socket, prisma, payload).then(() => ack?.());
+        void guard(() => onGameJoin(io, socket, prisma, payload), ack);
     });
 
     socket.on('game:eliminate', function () {
-        void onGameEliminate(io, socket, prisma);
+        void guard(() => onGameEliminate(io, socket, prisma));
     });
 
     socket.on('game:guess', function (payload) {
-        void onGameGuess(io, socket, prisma, payload);
+        void guard(() => onGameGuess(io, socket, prisma, payload));
     });
 
     socket.on('disconnect', function () {

@@ -96,3 +96,22 @@ would have restructured this code is deferred, so this is the version that ships
 The shared Socket.io adapter ticket becomes a pure delivery change once this
 lands — room membership no longer carries domain meaning, so scaling past one
 task stops being a correctness risk.
+
+Surfaced on 2026-10-08 by the socket handler guard fix (the (A) ticket on socket
+handlers that void their promises). A failure inside `startGame` now reaches the
+joiner as `game:error` instead of crashing the process, but nothing undoes the
+join, and what the Players see afterwards depends on where it failed:
+
+- **Before any write** (for example `selectSecretCards` throws): the Game stays
+  `LOBBY`, the joiner stays in the room, and a retry is rejected with "Already
+  connected to this game" because `decideJoinOutcome` lets room membership
+  decide.
+- **Partway through `activateGame`**, which is three un-transacted writes that
+  set the status to `ACTIVE` first and the two secret cards after: the Game is
+  already `ACTIVE`, so a retry takes the `REVEAL_CARD` branch, which runs before
+  the room check and emits `game:your-card` with a `secretCardId` that may still
+  be null. `game:started` was never broadcast, so the waiting Player is stuck
+  too.
+
+The unified join path above should make both cases recoverable. Worth an
+acceptance check: a failure during start must not strand either Player.

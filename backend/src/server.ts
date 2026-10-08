@@ -37,7 +37,7 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
     console.log('client connected:', socket.id);
 
-    registerGameHandlers(io, socket, prisma);
+    registerGameHandlers(io, socket, prisma, console.error);
 
     socket.on('disconnect', () => {
         console.log('client disconnected:', socket.id);

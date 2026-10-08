@@ -2,7 +2,9 @@ import { createServer } from 'http';
 import type { AddressInfo } from 'net';
 import { Server } from 'socket.io';
 import { prisma } from '../../../src/lib/db.js';
+import type { PrismaClient } from '../../../src/generated/prisma/client.js';
 import { registerGameHandlers } from '../../../src/socket/game-handler.js';
+import type { ErrorLogger } from '../../../src/socket/guard-handler.js';
 import type {
     ClientEvents,
     ServerEvents,
@@ -10,7 +12,9 @@ import type {
     SocketData,
 } from '../../../src/types/socket.js';
 
-export const startTestServer = function (): Promise<{
+export const startTestServer = function (
+    options: { prisma?: PrismaClient; logger?: ErrorLogger } = {},
+): Promise<{
     port: number;
     close: () => Promise<void>;
 }> {
@@ -21,11 +25,17 @@ export const startTestServer = function (): Promise<{
 
     io.use(function (socket, next) {
         socket.data.userId = socket.handshake.auth.token as string;
+        socket.data.gameId = socket.handshake.auth.gameId as string | undefined;
         next();
     });
 
     io.on('connection', function (socket) {
-        registerGameHandlers(io, socket, prisma);
+        registerGameHandlers(
+            io,
+            socket,
+            options.prisma ?? prisma,
+            options.logger ?? console.error,
+        );
     });
 
     return new Promise(function (resolve) {
