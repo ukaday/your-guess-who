@@ -115,3 +115,7 @@ join, and what the Players see afterwards depends on where it failed:
 
 The unified join path above should make both cases recoverable. Worth an
 acceptance check: a failure during start must not strand either Player.
+
+Noted on 2026-10-10: the `game:started` payload slice (C) routes the emit through
+the projection but deliberately keeps emitting the stale pre-`activateGame` copy.
+Emitting fresh state after the transition is this ticket's job.

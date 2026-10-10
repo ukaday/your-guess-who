@@ -4,6 +4,11 @@ export default defineConfig({
     test: {
         setupFiles: ['dotenv/config'],
         include: ['tests/**/*.test.ts'],
+        typecheck: {
+            enabled: true,
+            include: ['tests/**/*.test-d.ts'],
+            tsconfig: './tsconfig.test.json',
+        },
         coverage: {
             provider: 'v8',
             include: ['src/**/*.ts'],

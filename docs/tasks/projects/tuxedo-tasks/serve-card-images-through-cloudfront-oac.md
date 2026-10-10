@@ -85,3 +85,7 @@ one home before it is made.
 The signed-cookies ticket is the post-MVP follow-up and depends on this one. Same
 distribution, same payload shape, so it is additive rather than a rewrite — which
 is the reason shipping OAC first does not have to be undone.
+
+Noted on 2026-10-10: the `game:started` payload slice (C) ships Deck Cards with
+`id` and `name` only — no `imageKey`, no image field at all. For that event this
+ticket adds the image path rather than replacing a field.

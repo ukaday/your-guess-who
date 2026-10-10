@@ -9,7 +9,6 @@ import type {
     GameJoinPayload,
     GameGuessPayload,
     GameRemoteSocket,
-    GameSnapshotPayload,
 } from '../types/socket.js';
 import {
     selectSecretCards,
@@ -18,6 +17,10 @@ import {
     decideEliminateOutcome,
     decideGuessOutcome,
 } from '../services/game-logic.js';
+import {
+    toGameStartedPayload,
+    type GameWithPlayersAndDeck,
+} from '../payloads/game-started-payload.js';
 import { createHandlerGuard, type ErrorLogger } from './guard-handler.js';
 
 export function registerGameHandlers(
@@ -94,7 +97,7 @@ async function onGameJoin(
 async function startGame(
     io: GameServer,
     prisma: PrismaClient,
-    game: GameSnapshotPayload & { deck: { cards: Card[] } },
+    game: GameWithPlayersAndDeck,
     roomName: string,
 ) {
     const [card1, card2] = selectSecretCards(game.deck.cards);
@@ -103,13 +106,14 @@ async function startGame(
 
     await activateGame(prisma, game.id, firstPlayerId, playerIds, card1, card2);
 
-    io.to(roomName).emit('game:started', {
-        ...game,
-        status: 'ACTIVE' as const,
-        activePlayerId: firstPlayerId,
-        winnerId: null,
-        players: game.players,
-    });
+    io.to(roomName).emit(
+        'game:started',
+        toGameStartedPayload({
+            ...game,
+            status: 'ACTIVE',
+            activePlayerId: firstPlayerId,
+        }),
+    );
 
     const socketsInRoom = await io.in(roomName).fetchSockets();
 

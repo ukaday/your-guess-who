@@ -5,7 +5,7 @@ import { seedLobbyGame, resetDb } from './helpers/seed.js';
 import type {
     ServerEvents,
     ClientEvents,
-    GameSnapshotPayload,
+    GameStartedPayload,
     GameYourCardPayload,
     GameErrorPayload,
     GameActivePlayerChangedPayload,
@@ -25,10 +25,10 @@ async function startTwoPlayerGame(port: number) {
         auth: { token: seeded.player2Id },
     });
 
-    const started1 = new Promise<GameSnapshotPayload>(function (resolve) {
+    const started1 = new Promise<GameStartedPayload>(function (resolve) {
         client1.once('game:started', resolve);
     });
-    const started2 = new Promise<GameSnapshotPayload>(function (resolve) {
+    const started2 = new Promise<GameStartedPayload>(function (resolve) {
         client2.once('game:started', resolve);
     });
 

@@ -90,15 +90,27 @@ Nothing. Can start immediately, and several things wait on it.
 - `game:started` carries no Secret card for anyone.
 - A test asserts the opponent's Secret card is absent from an `ACTIVE` Game
   response.
-- Constructing a wire payload from a freshly-read Game with Secret cards set
-  fails to compile.
 - No route serialises a Prisma row directly.
+
+### Open question
+
+Should the compiler force every wire payload through the projection? An
+allow-list type alone cannot: TypeScript has no exact types, so an object with
+extra fields — a fresh `GamePlayer` included — still fits. A branded type that
+only the projection module can produce closes that, at the cost of one cast and
+a `unique symbol`. The `game:started` slice deferred this here, since REST adds a
+second construction site and the brand only pays for itself with more than one.
 
 ### Related
 
-Widened on 2026-08-11 from "stop returning the opponent's secretCardId". The
-separate ticket for excluding `secretCardId` from the `game:started` payload type
-is fully absorbed by this one and can be closed.
+Widened on 2026-08-11 from "stop returning the opponent's secretCardId".
+
+Re-scoped on 2026-10-10: the `game:started` payload ticket (C) is the first slice
+of this one and ships first. It sets the pattern — a hand-written allow-list
+shape, one projection function under a `payloads` layer, minimum fields, no image
+on the wire. This ticket extends that pattern to `GET /api/games/:id`; close the
+(C) ticket when this one closes. The "fails to compile" acceptance was dropped
+from that slice for the reason in the open question above.
 
 Note this is a different shape from the `imageKey` ticket, which was graded
 `@sev1` on assumption and corrected to `@sev3` after reading the code. This one
