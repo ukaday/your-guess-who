@@ -4,14 +4,14 @@
 
 - Priority: D
 - Created: 2026-10-08
-- Due: 2027-02-06
+- Due: 2027-04-18
 - Projects: +backend
 - Contexts: @sev4, @chore
 
 ## Task
 
 ```todo.txt
-(D) 2026-10-08 Share one error vocabulary across REST and socket handlers, Game not found is inlined in five socket emits and again in games.ts and game-logic.ts, Internal server error is written separately in error-handler.ts and the socket guard, and the logger type is inlined in error-handler.ts +backend @sev4 @chore due:2027-02-06 note:projects/tuxedo-tasks/share-one-error-vocabulary-across-rest-and-socket-handlers.md
+(D) 2026-10-08 Share one error vocabulary across REST and socket handlers, Game not found is inlined in five socket emits and again in games.ts and game-logic.ts, Internal server error is written separately in error-handler.ts and the socket guard, and the logger type is inlined in error-handler.ts +backend @sev4 @chore due:2027-04-18 note:projects/tuxedo-tasks/share-one-error-vocabulary-across-rest-and-socket-handlers.md
 ```
 
 ## My notes

@@ -4,14 +4,14 @@
 
 - Priority: D
 - Created: 2026-08-11
-- Due: 2026-09-16
+- Due: 2026-10-25
 - Projects: +cicd
 - Contexts: @sev3, @chore
 
 ## Task
 
 ```todo.txt
-(D) 2026-08-11 Convert the repo to an npm workspace and move the wire contract into packages/contract, the Docker build context is backend/ so COPY paths rootDir and the CI path filters all move +cicd @sev3 @chore due:2026-09-16 note:projects/tuxedo-tasks/npm-workspace-and-shared-contract-package.md
+(D) 2026-08-11 Convert the repo to an npm workspace and move the wire contract into packages/contract, the Docker build context is backend/ so COPY paths rootDir and the CI path filters all move +cicd @sev3 @chore due:2026-10-25 note:projects/tuxedo-tasks/npm-workspace-and-shared-contract-package.md
 ```
 
 ## My notes

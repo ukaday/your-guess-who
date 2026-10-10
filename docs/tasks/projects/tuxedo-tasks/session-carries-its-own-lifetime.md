@@ -4,14 +4,14 @@
 
 - Priority: C
 - Created: 2026-08-11
-- Due: 2026-09-23
+- Due: 2027-02-28
 - Projects: +backend
 - Contexts: @sev3, @feature
 
 ## Task
 
 ```todo.txt
-(C) 2026-08-11 Return the session expiry with the access token and set the refresh token in an httpOnly cookie, login discards ExpiresIn and RefreshToken so a client cannot know when its session dies or renew it +backend @sev3 @feature due:2026-09-23 note:projects/tuxedo-tasks/session-carries-its-own-lifetime.md
+(C) 2026-08-11 Return the session expiry with the access token and set the refresh token in an httpOnly cookie, login discards ExpiresIn and RefreshToken so a client cannot know when its session dies or renew it +backend @sev3 @feature due:2027-02-28 note:projects/tuxedo-tasks/session-carries-its-own-lifetime.md
 ```
 
 ## My notes

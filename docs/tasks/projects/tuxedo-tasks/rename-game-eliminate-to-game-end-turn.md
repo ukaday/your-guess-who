@@ -4,14 +4,14 @@
 
 - Priority: D
 - Created: 2026-08-11
-- Due: 2026-08-23
+- Due: 2026-10-25
 - Projects: +backend
 - Contexts: @sev4, @chore
 
 ## Task
 
 ```todo.txt
-(D) 2026-08-11 Rename the game:eliminate socket event to game:end-turn, the event carries no card id and only advances the turn so its name claims a server-side elimination that does not exist +backend @sev4 @chore due:2026-08-23 note:projects/tuxedo-tasks/rename-game-eliminate-to-game-end-turn.md
+(D) 2026-08-11 Rename the game:eliminate socket event to game:end-turn, the event carries no card id and only advances the turn so its name claims a server-side elimination that does not exist +backend @sev4 @chore due:2026-10-25 note:projects/tuxedo-tasks/rename-game-eliminate-to-game-end-turn.md
 ```
 
 ## My notes

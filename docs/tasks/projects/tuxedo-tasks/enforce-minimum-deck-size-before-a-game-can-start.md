@@ -4,14 +4,14 @@
 
 - Priority: B
 - Created: 2026-08-04
-- Due: 2026-09-26
+- Due: 2027-01-10
 - Projects: +backend
 - Contexts: @sev2, @bug
 
 ## Task
 
 ```todo.txt
-(B) 2026-08-04 Enforce a minimum deck size before a game can start, nothing checks card count so selectSecretCards throws on a deck with fewer than two cards +backend @sev2 @bug due:2026-09-26 note:projects/tuxedo-tasks/enforce-minimum-deck-size-before-a-game-can-start.md
+(B) 2026-08-04 Enforce a minimum deck size before a game can start, nothing checks card count so selectSecretCards throws on a deck with fewer than two cards +backend @sev2 @bug due:2027-01-10 note:projects/tuxedo-tasks/enforce-minimum-deck-size-before-a-game-can-start.md
 ```
 
 ## My notes

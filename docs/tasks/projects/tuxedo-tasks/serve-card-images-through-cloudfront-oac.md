@@ -4,14 +4,14 @@
 
 - Priority: C
 - Created: 2026-08-11
-- Due: 2026-09-08
+- Due: 2026-11-01
 - Projects: +infra
 - Contexts: @sev3, @feature
 
 ## Task
 
 ```todo.txt
-(C) 2026-08-11 Serve card images through CloudFront with an Origin Access Control and deliver a same-origin path instead of imageKey, no read path exists anywhere so no card image can render +infra @sev3 @feature due:2026-09-08 note:projects/tuxedo-tasks/serve-card-images-through-cloudfront-oac.md
+(C) 2026-08-11 Serve card images through CloudFront with an Origin Access Control and deliver a same-origin path instead of imageKey, no read path exists anywhere so no card image can render +infra @sev3 @feature due:2026-11-01 note:projects/tuxedo-tasks/serve-card-images-through-cloudfront-oac.md
 ```
 
 ## My notes

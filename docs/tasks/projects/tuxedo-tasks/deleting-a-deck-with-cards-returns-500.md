@@ -4,14 +4,14 @@
 
 - Priority: B
 - Created: 2026-08-04
-- Due: 2026-10-03
+- Due: 2027-01-10
 - Projects: +backend
 - Contexts: @sev2, @bug
 
 ## Task
 
 ```todo.txt
-(B) 2026-08-04 Deleting a deck that has cards returns 500, Card_deckId_fkey is ON DELETE RESTRICT so DELETE /api/decks/:id fails for every non-empty deck and a deck used in any game can never be deleted at all +backend @sev2 @bug due:2026-10-03 note:projects/tuxedo-tasks/deleting-a-deck-with-cards-returns-500.md
+(B) 2026-08-04 Deleting a deck that has cards returns 500, Card_deckId_fkey is ON DELETE RESTRICT so DELETE /api/decks/:id fails for every non-empty deck and a deck used in any game can never be deleted at all +backend @sev2 @bug due:2027-01-10 note:projects/tuxedo-tasks/deleting-a-deck-with-cards-returns-500.md
 ```
 
 ## My notes

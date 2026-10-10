@@ -4,14 +4,14 @@
 
 - Priority: C
 - Created: 2026-08-11
-- Due: 2026-11-20
+- Due: 2027-03-21
 - Projects: +infra
 - Contexts: @sev3, @security
 
 ## Task
 
 ```todo.txt
-(C) 2026-08-11 Make card images secret with CloudFront signed cookies, the OAC path is unauthenticated so a card image URL that escapes stays valid forever +infra @sev3 @security due:2026-11-20 note:projects/tuxedo-tasks/make-card-images-secret-with-signed-cookies.md
+(C) 2026-08-11 Make card images secret with CloudFront signed cookies, the OAC path is unauthenticated so a card image URL that escapes stays valid forever +infra @sev3 @security due:2027-03-21 note:projects/tuxedo-tasks/make-card-images-secret-with-signed-cookies.md
 ```
 
 ## My notes

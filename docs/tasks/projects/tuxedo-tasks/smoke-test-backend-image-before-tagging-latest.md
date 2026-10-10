@@ -4,14 +4,14 @@
 
 - Priority: B
 - Created: 2026-08-02
-- Due: 2026-09-12
+- Due: 2027-01-31
 - Projects: +cicd
 - Contexts: @sev2, @bug
 
 ## Task
 
 ```todo.txt
-(B) 2026-08-02 Smoke test the backend image in Deploy Backend before tagging latest, the workflow pushes without ever starting the container so a broken image shipped undetected and only surfaced when ECS crash-looped hours later +cicd @sev2 @bug due:2026-09-12 note:projects/tuxedo-tasks/smoke-test-backend-image-before-tagging-latest.md
+(B) 2026-08-02 Smoke test the backend image in Deploy Backend before tagging latest, the workflow pushes without ever starting the container so a broken image shipped undetected and only surfaced when ECS crash-looped hours later +cicd @sev2 @bug due:2027-01-31 note:projects/tuxedo-tasks/smoke-test-backend-image-before-tagging-latest.md
 ```
 
 ## My notes

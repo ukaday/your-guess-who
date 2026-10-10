@@ -4,14 +4,14 @@
 
 - Priority: C
 - Created: 2026-07-30
-- Due: 2026-10-01
+- Due: 2027-02-14
 - Projects: +backend
 - Contexts: @sev3, @security
 
 ## Task
 
 ```todo.txt
-(C) 2026-07-30 Parse all REST bodies and socket payloads with zod at the seam and enforce the configured max card and deck name lengths, socket payloads are never inspected at all today +backend @sev3 @security due:2026-10-01 note:projects/tuxedo-tasks/parse-rest-and-socket-payloads-at-the-seam.md
+(C) 2026-07-30 Parse all REST bodies and socket payloads with zod at the seam and enforce the configured max card and deck name lengths, socket payloads are never inspected at all today +backend @sev3 @security due:2027-02-14 note:projects/tuxedo-tasks/parse-rest-and-socket-payloads-at-the-seam.md
 ```
 
 ## My notes

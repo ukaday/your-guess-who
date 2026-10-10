@@ -4,14 +4,14 @@
 
 - Priority: C
 - Created: 2026-08-04
-- Due: 2026-10-06
+- Due: 2027-02-28
 - Projects: +backend
 - Contexts: @sev3, @bug
 
 ## Task
 
 ```todo.txt
-(C) 2026-08-04 Delete S3 objects when cards and decks are deleted, deleteCard removes the row and never touches the bucket so every image ever uploaded is retained forever +backend @sev3 @bug due:2026-10-06 note:projects/tuxedo-tasks/delete-s3-objects-when-cards-and-decks-are-deleted.md
+(C) 2026-08-04 Delete S3 objects when cards and decks are deleted, deleteCard removes the row and never touches the bucket so every image ever uploaded is retained forever +backend @sev3 @bug due:2027-02-28 note:projects/tuxedo-tasks/delete-s3-objects-when-cards-and-decks-are-deleted.md
 ```
 
 ## My notes

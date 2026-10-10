@@ -4,14 +4,14 @@
 
 - Priority: D
 - Created: 2026-08-02
-- Due: 2027-01-11
+- Due: 2027-04-11
 - Projects: +infra
 - Contexts: @sev3, @chore
 
 ## Task
 
 ```todo.txt
-(D) 2026-08-02 Set CloudWatch log retention on the ECS Express service log group, retentionInDays is unset so logs are kept forever and storage grows unbounded +infra @sev3 @chore due:2027-01-11 note:projects/tuxedo-tasks/set-log-retention-on-ecs-service-log-group.md
+(D) 2026-08-02 Set CloudWatch log retention on the ECS Express service log group, retentionInDays is unset so logs are kept forever and storage grows unbounded +infra @sev3 @chore due:2027-04-11 note:projects/tuxedo-tasks/set-log-retention-on-ecs-service-log-group.md
 ```
 
 ## My notes

@@ -4,14 +4,14 @@
 
 - Priority: B
 - Created: 2026-07-30
-- Due: 2026-09-01
+- Due: 2026-11-15
 - Projects: +backend
 - Contexts: @sev2, @bug
 
 ## Task
 
 ```todo.txt
-(B) 2026-07-30 Make game start a conditional DB transition and deliver state as a self-snapshot to every socket joining the room, room arrival currently triggers the start so a lost race can leave a player in a dead lobby +backend @sev2 @bug due:2026-09-01 note:projects/tuxedo-tasks/make-game-start-atomic-against-concurrent-join.md
+(B) 2026-07-30 Make game start a conditional DB transition and deliver state as a self-snapshot to every socket joining the room, room arrival currently triggers the start so a lost race can leave a player in a dead lobby +backend @sev2 @bug due:2026-11-15 note:projects/tuxedo-tasks/make-game-start-atomic-against-concurrent-join.md
 ```
 
 ## My notes

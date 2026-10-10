@@ -4,14 +4,14 @@
 
 - Priority: A
 - Created: 2026-08-04
-- Due: 2026-08-22
+- Due: 2026-10-25
 - Projects: +backend
 - Contexts: @sev1, @security
 
 ## Task
 
 ```todo.txt
-(A) 2026-08-04 Build a GameView projection module so Prisma rows never cross the wire, getGame includes every GamePlayer column so either player can read the opponent secretCardId and win on the next guess +backend @sev1 @security due:2026-08-22 note:projects/tuxedo-tasks/get-game-returns-both-players-secret-cards.md
+(A) 2026-08-04 Build a GameView projection module so Prisma rows never cross the wire, getGame includes every GamePlayer column so either player can read the opponent secretCardId and win on the next guess +backend @sev1 @security due:2026-10-25 note:projects/tuxedo-tasks/get-game-returns-both-players-secret-cards.md
 ```
 
 ## My notes

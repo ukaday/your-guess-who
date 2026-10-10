@@ -4,14 +4,14 @@
 
 - Priority: C
 - Created: 2026-07-30
-- Due: 2026-12-16
+- Due: 2027-03-14
 - Projects: +frontend
 - Contexts: @sev3, @feature
 
 ## Task
 
 ```todo.txt
-(C) 2026-07-30 Add an emitWithAck timeout to the shared Socket.io client so a missing ack surfaces as an error instead of a hang, the server now acks game:join on failure so this is the client half of the ack-reliability fix +frontend @sev3 @feature due:2026-12-16 note:projects/tuxedo-tasks/add-emitwithack-timeout-to-the-shared-socket-client.md
+(C) 2026-07-30 Add an emitWithAck timeout to the shared Socket.io client so a missing ack surfaces as an error instead of a hang, the server now acks game:join on failure so this is the client half of the ack-reliability fix +frontend @sev3 @feature due:2027-03-14 note:projects/tuxedo-tasks/add-emitwithack-timeout-to-the-shared-socket-client.md
 ```
 
 ## My notes

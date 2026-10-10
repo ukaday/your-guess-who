@@ -4,14 +4,14 @@
 
 - Priority: C
 - Created: 2026-07-30
-- Due: 2026-09-08
+- Due: 2027-02-14
 - Projects: +backend
 - Contexts: @sev3, @security
 
 ## Task
 
 ```todo.txt
-(C) 2026-07-30 Reject imageKey values outside caller's own cards/<userId>/ prefix on card create +backend @sev3 @security due:2026-09-08 note:projects/tuxedo-tasks/reject-imagekey-values-outside-caller-s-own-cards-userid-prefix-on-card-create.md
+(C) 2026-07-30 Reject imageKey values outside caller's own cards/<userId>/ prefix on card create +backend @sev3 @security due:2027-02-14 note:projects/tuxedo-tasks/reject-imagekey-values-outside-caller-s-own-cards-userid-prefix-on-card-create.md
 ```
 
 ## My notes

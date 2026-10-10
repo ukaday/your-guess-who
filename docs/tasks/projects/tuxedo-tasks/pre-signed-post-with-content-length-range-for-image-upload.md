@@ -4,14 +4,14 @@
 
 - Priority: B
 - Created: 2026-07-30
-- Due: 2026-10-11
+- Due: 2027-01-24
 - Projects: +backend
 - Contexts: @sev2, @security
 
 ## Task
 
 ```todo.txt
-(B) 2026-07-30 Switch /images/upload-url to pre-signed POST with content-length-range and image-only content types +backend @sev2 @security due:2026-10-11 note:projects/tuxedo-tasks/pre-signed-post-with-content-length-range-for-image-upload.md
+(B) 2026-07-30 Switch /images/upload-url to pre-signed POST with content-length-range and image-only content types +backend @sev2 @security due:2027-01-24 note:projects/tuxedo-tasks/pre-signed-post-with-content-length-range-for-image-upload.md
 ```
 
 ## My notes

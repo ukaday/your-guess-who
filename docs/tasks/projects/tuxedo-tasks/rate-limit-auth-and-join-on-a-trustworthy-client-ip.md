@@ -4,14 +4,14 @@
 
 - Priority: B
 - Created: 2026-07-30
-- Due: 2026-10-19
+- Due: 2027-01-31
 - Projects: +backend
 - Contexts: @sev2, @security
 
 ## Task
 
 ```todo.txt
-(B) 2026-07-30 Add express-rate-limit on /auth/login /auth/register /games/join and widen invite-code alphabet, first add a CloudFront origin request policy forwarding CloudFront-Viewer-Address and read the client IP from it, trust proxy is unset and ALL_VIEWER_EXCEPT_HOST_HEADER passes a spoofable X-Forwarded-For +backend @sev2 @security due:2026-10-19 note:projects/tuxedo-tasks/rate-limit-auth-and-join-on-a-trustworthy-client-ip.md
+(B) 2026-07-30 Add express-rate-limit on /auth/login /auth/register /games/join and widen invite-code alphabet, first add a CloudFront origin request policy forwarding CloudFront-Viewer-Address and read the client IP from it, trust proxy is unset and ALL_VIEWER_EXCEPT_HOST_HEADER passes a spoofable X-Forwarded-For +backend @sev2 @security due:2027-01-31 note:projects/tuxedo-tasks/rate-limit-auth-and-join-on-a-trustworthy-client-ip.md
 ```
 
 ## My notes

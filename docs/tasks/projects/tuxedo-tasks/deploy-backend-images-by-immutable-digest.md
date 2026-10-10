@@ -4,14 +4,14 @@
 
 - Priority: B
 - Created: 2026-07-30
-- Due: 2026-09-18
+- Due: 2027-02-07
 - Projects: +infra
 - Contexts: @sev2, @bug
 
 ## Task
 
 ```todo.txt
-(B) 2026-07-30 Deploy backend images to ECS Express by commit SHA or digest instead of mutable latest tag +infra @sev2 @bug due:2026-09-18 note:projects/tuxedo-tasks/deploy-backend-images-by-immutable-digest.md
+(B) 2026-07-30 Deploy backend images to ECS Express by commit SHA or digest instead of mutable latest tag +infra @sev2 @bug due:2027-02-07 note:projects/tuxedo-tasks/deploy-backend-images-by-immutable-digest.md
 ```
 
 ## My notes

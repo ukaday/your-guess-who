@@ -4,14 +4,14 @@
 
 - Priority: B
 - Created: 2026-08-04
-- Due: 2026-09-29
+- Due: 2027-01-17
 - Projects: +backend
 - Contexts: @sev2, @bug
 
 ## Task
 
 ```todo.txt
-(B) 2026-08-04 Block deleting a card that is a live game's secret card, GamePlayer_secretCardId_fkey is ON DELETE SET NULL so the deck owner can silently make an in-progress game unwinnable +backend @sev2 @bug due:2026-09-29 note:projects/tuxedo-tasks/block-deleting-a-card-that-is-a-live-games-secret-card.md
+(B) 2026-08-04 Block deleting a card that is a live game's secret card, GamePlayer_secretCardId_fkey is ON DELETE SET NULL so the deck owner can silently make an in-progress game unwinnable +backend @sev2 @bug due:2027-01-17 note:projects/tuxedo-tasks/block-deleting-a-card-that-is-a-live-games-secret-card.md
 ```
 
 ## My notes

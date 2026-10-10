@@ -4,14 +4,14 @@
 
 - Priority: C
 - Created: 2026-08-04
-- Due: 2026-10-21
+- Due: 2026-10-25
 - Projects: +backend
 - Contexts: @sev3, @security
 
 ## Task
 
 ```todo.txt
-(C) 2026-08-04 Exclude secretCardId from the game:started socket payload type, GameSnapshotPayload is Game and GamePlayer[] so the type promises the whole room both players' secret cards +backend @sev3 @security due:2026-10-21 note:projects/tuxedo-tasks/exclude-secretcardid-from-the-game-started-socket-payload-type.md
+(C) 2026-08-04 Exclude secretCardId from the game:started socket payload type, GameSnapshotPayload is Game and GamePlayer[] so the type promises the whole room both players' secret cards +backend @sev3 @security due:2026-10-25 note:projects/tuxedo-tasks/exclude-secretcardid-from-the-game-started-socket-payload-type.md
 ```
 
 ## My notes
