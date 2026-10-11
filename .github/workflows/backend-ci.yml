@@ -4,10 +4,16 @@ on:
     push:
         paths:
             - 'backend/**'
+            - 'packages/contract/**'
+            - 'package.json'
+            - 'package-lock.json'
             - '.github/workflows/backend-ci.yml'
     pull_request:
         paths:
             - 'backend/**'
+            - 'packages/contract/**'
+            - 'package.json'
+            - 'package-lock.json'
             - '.github/workflows/backend-ci.yml'
 
 jobs:
@@ -43,8 +49,10 @@ jobs:
               with:
                   node-version: 22
                   cache: npm
-                  cache-dependency-path: backend/package-lock.json
-            - run: npm ci
+                  cache-dependency-path: package-lock.json
+            - run: npm ci -w backend
+              working-directory: .
+            - run: npm run typecheck -w @your-guess-who/contract
             - run: npx prisma generate
             - run: npx prisma migrate deploy
             - run: npm run build

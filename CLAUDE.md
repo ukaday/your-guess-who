@@ -40,14 +40,14 @@ DB runs in Docker (`docker-compose.yml` at repo root). Backend and frontend run 
 
 1. `docker compose up -d` at the repo root
 2. Copy `backend/.env.example` and `frontend/.env.example` to `.env` in the same folder and fill in the blanks
-3. `backend/`: `npx prisma generate && npx prisma migrate deploy`, then `npm run dev`
+3. Repo root: `npm install`. Then `backend/`: `npx prisma generate && npx prisma migrate deploy`, then `npm run dev`
 4. `frontend/`: `npm run dev`
 
 There is no separate dev environment. Only the database is local: local dev signs users up in the deployed Cognito pool and uploads to the deployed S3 bucket, using the AWS CLI's credentials (`aws login`).
 
 ## Architecture
 
-Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm packages.
+Monorepo: `backend/`, `frontend/` and `packages/contract` are npm workspaces under the root `package.json`, one root `package-lock.json`, installed with `npm install` at the repo root. `infrastructure/` stays an independent npm package with its own lockfile. `packages/contract` holds the wire contract (socket events and payload types) as hand-written `.d.ts` — types only, no runtime JavaScript, no import from `src/generated`. Both apps import it as `@your-guess-who/contract`. The backend image builds from the repo root: `docker build -f backend/Dockerfile .`.
 
 **Backend** — Express + Socket.io on single HTTP server. Entry: `src/server.ts` (port binding, Socket.io) + `src/app.ts` (`createApp(prisma, cognito, s3, s3Bucket, corsOrigin)` factory). Layered: `src/lib/` (env, db, cognito, s3 singletons), `src/middleware/` (Express auth, Socket.io auth, error handler), `src/routes/` (thin handlers; errors propagate to `createErrorHandler`), `src/services/` (business logic, injected deps), `src/socket/` (Socket.io event handlers), `src/utils/` (shared helpers, `HttpError`). Socket.io rooms per game (`game:<id>`). JWT passed as `auth.token` in handshake, validated by `createSocketAuthMiddleware`. Prisma 7 via `@prisma/adapter-pg`. AWS SDK v3 for Cognito auth + S3 pre-signed URLs. Config is environment variables read by `src/lib/env.ts`: locally from `.env` via dotenv; deployed, from the ECS container environment, with DB credentials injected from Secrets Manager as `DB_*`.
 
@@ -70,9 +70,9 @@ Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm package
 
 | Workflow | Trigger | Does |
 |---|---|---|
-| `backend-ci.yml` | push + PR touching `backend/` | lint/build/test against a Postgres service container |
-| `backend.yml` | push to `master` touching `backend/` | build image, push to ECR as `latest` |
-| `frontend.yml` | push to `master` touching `frontend/` | `cdk deploy FrontendStack` (bundles the frontend in Docker) |
+| `backend-ci.yml` | push + PR touching `backend/`, `packages/contract/` or the root manifests | lint/build/test against a Postgres service container |
+| `backend.yml` | push to `master` touching `backend/`, `packages/contract/` or the root manifests | build image, push to ECR as `latest` |
+| `frontend.yml` | push to `master` touching `frontend/`, `packages/contract/` or the root manifests | `cdk deploy FrontendStack` (bundles the frontend in Docker) |
 | `infrastructure.yml` | push to `master` touching `infrastructure/` | `cdk deploy --all` |
 
 **Auth** — Cognito issues JWTs. Username + password only — no email or personal data. Backend validates via Cognito JWKS per request. Local DB `users` table mirrors Cognito sub as PK.
@@ -82,6 +82,9 @@ Monorepo: `backend/`, `frontend/`, `infrastructure/` are independent npm package
 ```
 your-guess-who/
 ├── docker-compose.yml                # local Postgres
+├── package.json                      # npm workspaces root (backend, frontend, packages/*)
+├── package-lock.json                 # one lockfile for the workspaces
+├── .dockerignore                     # backend image build context filter
 ├── CONTEXT.md                        # domain glossary
 ├── aws-resources.local.md            # gitignored — local AWS resource IDs
 ├── CLAUDE.md
@@ -99,6 +102,8 @@ your-guess-who/
 │   ├── tasks/                        # per-ticket notes for todo.txt
 │   ├── bootstrap-instructions.md
 │   └── technical-design.md
+├── packages/
+│   └── contract/                     # wire contract: hand-written .d.ts, types only
 ├── backend/
 │   ├── .env.example
 │   ├── Dockerfile

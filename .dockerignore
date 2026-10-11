@@ -1,0 +1,11 @@
+**
+!package.json
+!package-lock.json
+!backend/package.json
+!backend/prisma
+!backend/prisma.config.ts
+!backend/tsconfig.json
+!backend/src
+!packages/contract
+backend/src/generated
+**/node_modules

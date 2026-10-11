@@ -1,0 +1,9 @@
+{
+    "name": "your-guess-who",
+    "private": true,
+    "workspaces": [
+        "backend",
+        "frontend",
+        "packages/*"
+    ]
+}

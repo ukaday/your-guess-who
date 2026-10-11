@@ -11,7 +11,7 @@ import type {
     GameActivePlayerChangedPayload,
     GameGuessWrongPayload,
     GameOverPayload,
-} from '../../src/types/socket.js';
+} from '@your-guess-who/contract';
 
 type TestClient = Socket<ServerEvents, ClientEvents>;
 

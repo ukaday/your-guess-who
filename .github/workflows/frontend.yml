@@ -5,6 +5,9 @@ on:
         branches: [master]
         paths:
             - 'frontend/**'
+            - 'packages/contract/**'
+            - 'package.json'
+            - 'package-lock.json'
             - '.github/workflows/frontend.yml'
 
 permissions:

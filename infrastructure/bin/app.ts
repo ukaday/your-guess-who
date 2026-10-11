@@ -43,7 +43,22 @@ const backend = new BackendStack(app, 'BackendStack', {
 });
 
 const frontendSources = [
-    s3deploy.Source.asset('../frontend', {
+    s3deploy.Source.asset('..', {
+        exclude: [
+            '.git',
+            '.claude',
+            'backend',
+            '.github',
+            '.dockerignore',
+            '*.md',
+            '*.txt',
+            'docker-compose.yml',
+            'docs',
+            'infrastructure',
+            '**/node_modules',
+            '**/dist',
+            '**/coverage',
+        ],
         bundling: {
             image: cdk.DockerImage.fromRegistry('node:22-alpine'),
             environment: {
@@ -53,7 +68,7 @@ const frontendSources = [
             command: [
                 'sh',
                 '-c',
-                'npm ci && npm run build && cp -r dist/. /asset-output/',
+                'npm ci -w frontend && npm run build -w frontend && cp -r frontend/dist/. /asset-output/',
             ],
         },
     }),

@@ -4,10 +4,12 @@ import type {
     GamePlayer,
 } from '../generated/prisma/client.js';
 import type {
-    GameSocket,
-    GameServer,
     GameJoinPayload,
     GameGuessPayload,
+} from '@your-guess-who/contract';
+import type {
+    GameSocket,
+    GameServer,
     GameRemoteSocket,
 } from '../types/socket.js';
 import {

@@ -1,5 +1,5 @@
 import { describe, it, expectTypeOf } from 'vitest';
-import type { GameStartedPayload } from '../../src/types/socket.js';
+import type { GameStartedPayload } from '@your-guess-who/contract';
 
 describe('GameStartedPayload', function () {
     it('declares no secretCardId on a player', function () {

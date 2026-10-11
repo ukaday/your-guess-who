@@ -1,0 +1,18 @@
+{
+    "name": "@your-guess-who/contract",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "types": "./index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./index.d.ts"
+        }
+    },
+    "scripts": {
+        "typecheck": "tsc"
+    },
+    "devDependencies": {
+        "typescript": "^6"
+    }
+}

@@ -8,12 +8,8 @@ import { createApp } from './app.js';
 import { env } from './lib/env.js';
 import { createSocketAuthMiddleware } from './middleware/socket-auth.js';
 import { registerGameHandlers } from './socket/game-handler.js';
-import type {
-    ClientEvents,
-    ServerEvents,
-    EmptyEvents,
-    SocketData,
-} from './types/socket.js';
+import type { ClientEvents, ServerEvents } from '@your-guess-who/contract';
+import type { EmptyEvents, SocketData } from './types/socket.js';
 
 const app = createApp(prisma, cognito, s3, env.S3_BUCKET, env.FRONTEND_ORIGIN);
 const httpServer = createServer(app);

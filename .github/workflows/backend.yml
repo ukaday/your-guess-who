@@ -5,6 +5,9 @@ on:
         branches: [master]
         paths:
             - 'backend/**'
+            - 'packages/contract/**'
+            - 'package.json'
+            - 'package-lock.json'
             - '.github/workflows/backend.yml'
 
 permissions:
@@ -14,9 +17,6 @@ permissions:
 jobs:
     deploy:
         runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: backend
         steps:
             - uses: actions/checkout@v4
             - uses: aws-actions/configure-aws-credentials@v6
@@ -26,5 +26,5 @@ jobs:
             - uses: aws-actions/amazon-ecr-login@v2
               id: ecr-login
             - run: |
-                  docker build -t "${{ steps.ecr-login.outputs.registry }}/your-guess-who-backend:latest" .
+                  docker build -f backend/Dockerfile -t "${{ steps.ecr-login.outputs.registry }}/your-guess-who-backend:latest" .
                   docker push "${{ steps.ecr-login.outputs.registry }}/your-guess-who-backend:latest"

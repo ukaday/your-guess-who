@@ -1,28 +1,9 @@
 import type { RemoteSocket, Server, Socket } from 'socket.io';
-import type { GameStatus } from '../generated/prisma/client.js';
+import type { ClientEvents, ServerEvents } from '@your-guess-who/contract';
 
 export type SocketData = { userId: string; gameId?: string };
 
 export type EmptyEvents = Record<string, never>;
-
-export type ClientEvents = {
-    'game:join': (payload: GameJoinPayload, ack?: () => void) => void;
-    'game:end-turn': () => void;
-    'game:guess': (payload: GameGuessPayload) => void;
-};
-
-export type ServerEvents = {
-    'game:started': (state: GameStartedPayload) => void;
-    'game:error': (payload: GameErrorPayload) => void;
-    'game:your-card': (payload: GameYourCardPayload) => void;
-    'game:active-player-changed': (
-        payload: GameActivePlayerChangedPayload,
-    ) => void;
-    'game:guess-wrong': (payload: GameGuessWrongPayload) => void;
-    'game:over': (payload: GameOverPayload) => void;
-    'game:opponent-disconnected': () => void;
-    'game:opponent-reconnected': () => void;
-};
 
 export type GameServer = Server<
     ClientEvents,
@@ -39,21 +20,3 @@ export type GameSocket = Socket<
 >;
 
 export type GameRemoteSocket = RemoteSocket<ServerEvents, SocketData>;
-
-export type GameJoinPayload = { gameId: string };
-export type GameStartedPayload = {
-    id: string;
-    status: GameStatus;
-    activePlayerId: string | null;
-    players: { userId: string }[];
-    deck: { cards: { id: string; name: string }[] };
-};
-export type GameErrorPayload = { message: string };
-export type GameYourCardPayload = { cardId: string };
-export type GameActivePlayerChangedPayload = { activePlayerId: string };
-export type GameGuessPayload = { cardId: string };
-export type GameGuessWrongPayload = {
-    activePlayerId: string;
-    guessedCardId: string;
-};
-export type GameOverPayload = { winnerId: string };

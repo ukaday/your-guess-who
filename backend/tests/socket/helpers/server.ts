@@ -5,12 +5,8 @@ import { prisma } from '../../../src/lib/db.js';
 import type { PrismaClient } from '../../../src/generated/prisma/client.js';
 import { registerGameHandlers } from '../../../src/socket/game-handler.js';
 import type { ErrorLogger } from '../../../src/socket/guard-handler.js';
-import type {
-    ClientEvents,
-    ServerEvents,
-    EmptyEvents,
-    SocketData,
-} from '../../../src/types/socket.js';
+import type { ClientEvents, ServerEvents } from '@your-guess-who/contract';
+import type { EmptyEvents, SocketData } from '../../../src/types/socket.js';
 
 export const startTestServer = function (
     options: { prisma?: PrismaClient; logger?: ErrorLogger } = {},

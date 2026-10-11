@@ -6,6 +6,11 @@ export default defineConfig({
     test: {
         environment: 'happy-dom',
         include: ['tests/**/*.test.ts'],
+        typecheck: {
+            enabled: true,
+            include: ['tests/**/*.test-d.ts'],
+            tsconfig: './tsconfig.test.json',
+        },
         coverage: {
             provider: 'v8',
             include: ['src/**/*.{ts,vue}'],

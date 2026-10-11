@@ -1,5 +1,5 @@
 import type { Card, Game, GamePlayer } from '../generated/prisma/client.js';
-import type { GameStartedPayload } from '../types/socket.js';
+import type { GameStartedPayload } from '@your-guess-who/contract';
 
 export type GameWithPlayersAndDeck = Game & {
     players: GamePlayer[];
