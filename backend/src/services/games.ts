@@ -1,5 +1,10 @@
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { randomUUID } from 'crypto';
+import { toGameView } from '../payloads/game-view.js';
+import {
+    toCreatedGameView,
+    toJoinedGameView,
+} from '../payloads/lobby-payloads.js';
 
 const INVITE_CODE_LENGTH = 6;
 
@@ -17,7 +22,7 @@ export const createGame = async (
 
     if (!deck) return null;
 
-    return prisma.game.create({
+    const game = await prisma.game.create({
         data: {
             inviteCode: generateInviteCode(),
             status: 'LOBBY',
@@ -25,6 +30,8 @@ export const createGame = async (
             players: { create: { userId } },
         },
     });
+
+    return toCreatedGameView(game);
 };
 
 export const joinGame = async (
@@ -43,7 +50,11 @@ export const joinGame = async (
 
     if (alreadyJoined || game.players.length >= 2) return null;
 
-    return prisma.gamePlayer.create({ data: { gameId: game.id, userId } });
+    const player = await prisma.gamePlayer.create({
+        data: { gameId: game.id, userId },
+    });
+
+    return toJoinedGameView(player);
 };
 
 export const getGame = async (
@@ -51,10 +62,14 @@ export const getGame = async (
     userId: string,
     gameId: string,
 ) => {
-    return prisma.game.findFirst({
+    const game = await prisma.game.findFirst({
         where: { id: gameId, players: { some: { userId } } },
         include: { players: true, deck: { include: { cards: true } } },
     });
+
+    if (!game) return null;
+
+    return toGameView(game, userId);
 };
 
 export const createGameService = (prisma: PrismaClient) => ({

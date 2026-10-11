@@ -17,21 +17,45 @@ const OTHER_USER_ID = 'user-456';
 const DECK_ID = 'deck-abc';
 const GAME_ID = 'game-xyz';
 
+const makeActiveGameRow = () => ({
+    id: GAME_ID,
+    inviteCode: 'ABC123',
+    status: 'ACTIVE',
+    deckId: DECK_ID,
+    activePlayerId: USER_ID,
+    winnerId: null,
+    createdAt: new Date('2026-10-10T00:00:00Z'),
+    players: [
+        { gameId: GAME_ID, userId: USER_ID, secretCardId: 'card-1' },
+        { gameId: GAME_ID, userId: OTHER_USER_ID, secretCardId: 'card-2' },
+    ],
+    deck: {
+        cards: [
+            { id: 'card-1', name: 'Alice', imageKey: 'img/a', deckId: DECK_ID },
+        ],
+    },
+});
+
 describe('createGame', () => {
-    it('returns created game when deck owned by user', async () => {
+    it('returns only the invite details of the created game', async () => {
         const prisma = makePrisma();
         const game = {
             id: GAME_ID,
             inviteCode: 'ABC123',
             status: 'LOBBY',
             deckId: DECK_ID,
+            winnerId: null,
         };
         prisma.deck.findFirst.mockResolvedValueOnce({ id: DECK_ID });
         prisma.game.create.mockResolvedValueOnce(game);
 
         const result = await createGame(prisma as never, USER_ID, DECK_ID);
 
-        expect(result).toBe(game);
+        expect(result).toStrictEqual({
+            id: GAME_ID,
+            inviteCode: 'ABC123',
+            status: 'LOBBY',
+        });
     });
 
     it('returns null when deck not found or not owned', async () => {
@@ -91,9 +115,13 @@ describe('createGame', () => {
 });
 
 describe('joinGame', () => {
-    it('returns game player when joined successfully', async () => {
+    it('returns only the game id when joined successfully', async () => {
         const prisma = makePrisma();
-        const gamePlayer = { gameId: GAME_ID, userId: OTHER_USER_ID };
+        const gamePlayer = {
+            gameId: GAME_ID,
+            userId: OTHER_USER_ID,
+            secretCardId: null,
+        };
         prisma.game.findFirst.mockResolvedValueOnce({
             id: GAME_ID,
             status: 'LOBBY',
@@ -103,7 +131,7 @@ describe('joinGame', () => {
 
         const result = await joinGame(prisma as never, OTHER_USER_ID, 'ABC123');
 
-        expect(result).toBe(gamePlayer);
+        expect(result).toStrictEqual({ gameId: GAME_ID });
     });
 
     it('returns null when game not found', async () => {
@@ -152,14 +180,29 @@ describe('joinGame', () => {
 });
 
 describe('getGame', () => {
-    it('returns game when user is a player', async () => {
+    it('returns the game view when user is a player', async () => {
         const prisma = makePrisma();
-        const game = { id: GAME_ID, players: [{ userId: USER_ID }] };
-        prisma.game.findFirst.mockResolvedValueOnce(game);
+        prisma.game.findFirst.mockResolvedValueOnce(makeActiveGameRow());
 
         const result = await getGame(prisma as never, USER_ID, GAME_ID);
 
-        expect(result).toBe(game);
+        expect(result).toStrictEqual({
+            id: GAME_ID,
+            status: 'ACTIVE',
+            activePlayerId: USER_ID,
+            players: [{ userId: USER_ID }, { userId: OTHER_USER_ID }],
+            deck: { cards: [{ id: 'card-1', name: 'Alice' }] },
+            yourSecretCardId: 'card-1',
+        });
+    });
+
+    it('never returns the opponent secret card in an ACTIVE game', async () => {
+        const prisma = makePrisma();
+        prisma.game.findFirst.mockResolvedValueOnce(makeActiveGameRow());
+
+        const result = await getGame(prisma as never, USER_ID, GAME_ID);
+
+        expect(JSON.stringify(result)).not.toContain('card-2');
     });
 
     it('returns null when game not found or user not a player', async () => {
@@ -196,21 +239,28 @@ describe('getGame', () => {
 describe('createGameService', () => {
     it('createGame delegates to createGame fn', async () => {
         const prisma = makePrisma();
-        const game = { id: GAME_ID };
         prisma.deck.findFirst.mockResolvedValueOnce({ id: DECK_ID });
-        prisma.game.create.mockResolvedValueOnce(game);
+        prisma.game.create.mockResolvedValueOnce({
+            id: GAME_ID,
+            inviteCode: 'ABC123',
+            status: 'LOBBY',
+        });
 
         const result = await createGameService(prisma as never).createGame(
             USER_ID,
             DECK_ID,
         );
 
-        expect(result).toBe(game);
+        expect(result?.id).toBe(GAME_ID);
     });
 
     it('joinGame delegates to joinGame fn', async () => {
         const prisma = makePrisma();
-        const gamePlayer = { gameId: GAME_ID, userId: OTHER_USER_ID };
+        const gamePlayer = {
+            gameId: GAME_ID,
+            userId: OTHER_USER_ID,
+            secretCardId: null,
+        };
         prisma.game.findFirst.mockResolvedValueOnce({
             id: GAME_ID,
             status: 'LOBBY',
@@ -223,19 +273,18 @@ describe('createGameService', () => {
             'ABC123',
         );
 
-        expect(result).toBe(gamePlayer);
+        expect(result).toStrictEqual({ gameId: GAME_ID });
     });
 
     it('getGame delegates to getGame fn', async () => {
         const prisma = makePrisma();
-        const game = { id: GAME_ID };
-        prisma.game.findFirst.mockResolvedValueOnce(game);
+        prisma.game.findFirst.mockResolvedValueOnce(makeActiveGameRow());
 
         const result = await createGameService(prisma as never).getGame(
             USER_ID,
             GAME_ID,
         );
 
-        expect(result).toBe(game);
+        expect(result?.id).toBe(GAME_ID);
     });
 });
