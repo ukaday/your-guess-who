@@ -53,8 +53,8 @@ const failingEmits = [
             client.emit('game:join', { gameId: 'game-1' }),
     },
     {
-        event: 'game:eliminate',
-        emit: (client: TestClient) => client.emit('game:eliminate'),
+        event: 'game:end-turn',
+        emit: (client: TestClient) => client.emit('game:end-turn'),
     },
     {
         event: 'game:guess',

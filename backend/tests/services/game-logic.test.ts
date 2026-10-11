@@ -5,9 +5,9 @@ import {
     selectSecretCards,
     pickFirstPlayer,
     decideJoinOutcome,
-    decideEliminateOutcome,
+    decideEndTurnOutcome,
     decideGuessOutcome,
-    type EliminateDecisionGame,
+    type EndTurnDecisionGame,
     type GuessDecisionGame,
 } from '../../src/services/game-logic.js';
 
@@ -129,27 +129,27 @@ describe('decideJoinOutcome', () => {
     });
 });
 
-describe('decideEliminateOutcome', function () {
-    const game: EliminateDecisionGame = {
+describe('decideEndTurnOutcome', function () {
+    const game: EndTurnDecisionGame = {
         status: GameStatus.ACTIVE,
         activePlayerId: 'player-1',
         players: [{ userId: 'player-1' }, { userId: 'player-2' }],
     };
 
     it('rejects if player is not active', function () {
-        const result = decideEliminateOutcome(game, 'player-2');
+        const result = decideEndTurnOutcome(game, 'player-2');
 
         expect(result).toEqual({ type: 'REJECT', message: 'Not your turn' });
     });
 
     it('rejects if the game is not active', function () {
-        const activeGame: EliminateDecisionGame = {
+        const activeGame: EndTurnDecisionGame = {
             status: GameStatus.LOBBY,
             activePlayerId: 'player-1',
             players: [{ userId: 'player-1' }, { userId: 'player-2' }],
         };
 
-        const result = decideEliminateOutcome(activeGame, 'player-1');
+        const result = decideEndTurnOutcome(activeGame, 'player-1');
 
         expect(result).toEqual({
             type: 'REJECT',
@@ -158,7 +158,7 @@ describe('decideEliminateOutcome', function () {
     });
 
     it('advances turn and returns activePlayerId', function () {
-        const result = decideEliminateOutcome(game, 'player-1');
+        const result = decideEndTurnOutcome(game, 'player-1');
 
         expect(result).toEqual({
             type: 'ADVANCE_TURN',
@@ -167,13 +167,13 @@ describe('decideEliminateOutcome', function () {
     });
 
     it('advances turn from player-2 to player-1', function () {
-        const gameP2Active: EliminateDecisionGame = {
+        const gameP2Active: EndTurnDecisionGame = {
             status: GameStatus.ACTIVE,
             activePlayerId: 'player-2',
             players: [{ userId: 'player-1' }, { userId: 'player-2' }],
         };
 
-        const result = decideEliminateOutcome(gameP2Active, 'player-2');
+        const result = decideEndTurnOutcome(gameP2Active, 'player-2');
 
         expect(result).toEqual({
             type: 'ADVANCE_TURN',

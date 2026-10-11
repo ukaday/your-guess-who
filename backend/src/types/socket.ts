@@ -7,7 +7,7 @@ export type EmptyEvents = Record<string, never>;
 
 export type ClientEvents = {
     'game:join': (payload: GameJoinPayload, ack?: () => void) => void;
-    'game:eliminate': () => void;
+    'game:end-turn': () => void;
     'game:guess': (payload: GameGuessPayload) => void;
 };
 

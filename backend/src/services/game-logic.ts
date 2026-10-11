@@ -11,11 +11,11 @@ type JoinDecisionGame = {
     players: { userId: string; secretCardId: string | null }[];
 };
 
-export type EliminateOutcome =
+export type EndTurnOutcome =
     | { type: 'REJECT'; message: string }
     | { type: 'ADVANCE_TURN'; nextActivePlayerId: string };
 
-export type EliminateDecisionGame = {
+export type EndTurnDecisionGame = {
     status: GameStatus;
     activePlayerId: string | null;
     players: [{ userId: string }, { userId: string }];
@@ -83,10 +83,10 @@ export const decideJoinOutcome = (
     return { type: 'START' };
 };
 
-export function decideEliminateOutcome(
-    game: EliminateDecisionGame,
+export function decideEndTurnOutcome(
+    game: EndTurnDecisionGame,
     userId: string,
-): EliminateOutcome {
+): EndTurnOutcome {
     if (game.activePlayerId !== userId) {
         return { type: 'REJECT', message: 'Not your turn' };
     }

@@ -14,7 +14,7 @@ import {
     selectSecretCards,
     pickFirstPlayer,
     decideJoinOutcome,
-    decideEliminateOutcome,
+    decideEndTurnOutcome,
     decideGuessOutcome,
 } from '../services/game-logic.js';
 import {
@@ -35,8 +35,8 @@ export function registerGameHandlers(
         void guard(() => onGameJoin(io, socket, prisma, payload), ack);
     });
 
-    socket.on('game:eliminate', function () {
-        void guard(() => onGameEliminate(io, socket, prisma));
+    socket.on('game:end-turn', function () {
+        void guard(() => onGameEndTurn(io, socket, prisma));
     });
 
     socket.on('game:guess', function (payload) {
@@ -157,7 +157,7 @@ function emitSecretCards(
     });
 }
 
-async function onGameEliminate(
+async function onGameEndTurn(
     io: GameServer,
     socket: GameSocket,
     prisma: PrismaClient,
@@ -182,7 +182,7 @@ async function onGameEliminate(
     }
 
     const players = game.players as [GamePlayer, GamePlayer];
-    const outcome = decideEliminateOutcome(
+    const outcome = decideEndTurnOutcome(
         {
             status: game.status,
             activePlayerId: game.activePlayerId,

@@ -110,7 +110,7 @@ describe('game:join', function () {
     });
 });
 
-describe('game:eliminate', function () {
+describe('game:end-turn', function () {
     let port: number;
     let close: () => Promise<void>;
 
@@ -126,7 +126,7 @@ describe('game:eliminate', function () {
         await resetDb();
     });
 
-    it('emits game:active-player-changed with opponent as new activePlayerId after eliminate', async function () {
+    it('emits game:active-player-changed with opponent as new activePlayerId after ending turn', async function () {
         const game = await startTwoPlayerGame(port);
 
         const state = await game.started1;
@@ -147,7 +147,7 @@ describe('game:eliminate', function () {
             },
         );
 
-        activeClient.emit('game:eliminate');
+        activeClient.emit('game:end-turn');
 
         const result = await activePlayerChanged;
 
@@ -157,7 +157,7 @@ describe('game:eliminate', function () {
         game.client2.disconnect();
     });
 
-    it('emits game:error when non-active player tries to eliminate', async function () {
+    it('emits game:error when non-active player tries to end turn', async function () {
         const game = await startTwoPlayerGame(port);
 
         const state = await game.started1;
@@ -171,7 +171,7 @@ describe('game:eliminate', function () {
             noneActiveClient.once('game:error', resolve);
         });
 
-        noneActiveClient.emit('game:eliminate');
+        noneActiveClient.emit('game:end-turn');
 
         const result = await gameError;
 
