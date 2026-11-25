@@ -7,9 +7,8 @@ export type ClientEvents = {
 };
 
 export type ServerEvents = {
-    'game:started': (state: GameStartedPayload) => void;
+    'game:state': (state: GameView) => void;
     'game:error': (payload: GameErrorPayload) => void;
-    'game:your-card': (payload: GameYourCardPayload) => void;
     'game:active-player-changed': (
         payload: GameActivePlayerChangedPayload,
     ) => void;
@@ -27,8 +26,11 @@ export type GameStartedPayload = {
     players: { userId: string }[];
     deck: { cards: { id: string; name: string }[] };
 };
+export type GameView = GameStartedPayload & {
+    yourSecretCardId: string | null;
+    winnerId: string | null;
+};
 export type GameErrorPayload = { message: string };
-export type GameYourCardPayload = { cardId: string };
 export type GameActivePlayerChangedPayload = { activePlayerId: string };
 export type GameGuessPayload = { cardId: string };
 export type GameGuessWrongPayload = {
@@ -37,6 +39,3 @@ export type GameGuessWrongPayload = {
 };
 export type GameOverPayload = { winnerId: string };
 
-export type GameView = GameStartedPayload & {
-    yourSecretCardId: string | null;
-};

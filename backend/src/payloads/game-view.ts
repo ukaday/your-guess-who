@@ -13,5 +13,6 @@ export function toGameView(
     return {
         ...toGameStartedPayload(game),
         yourSecretCardId: ownPlayer?.secretCardId ?? null,
+        winnerId: game.winnerId,
     };
 }

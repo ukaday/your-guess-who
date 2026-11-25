@@ -5,6 +5,7 @@ import {
     selectSecretCards,
     pickFirstPlayer,
     decideJoinOutcome,
+    shouldStartGame,
     decideEndTurnOutcome,
     decideGuessOutcome,
     type EndTurnDecisionGame,
@@ -81,51 +82,71 @@ describe('pickFirstPlayer', () => {
 describe('decideJoinOutcome', () => {
     const lobbyGame = {
         status: 'LOBBY' as const,
-        players: [
-            { userId: 'player-1', secretCardId: null },
-            { userId: 'player-2', secretCardId: null },
-        ],
+        players: [{ userId: 'player-1' }, { userId: 'player-2' }],
     };
 
     it('rejects when the user is not a player in the game', () => {
-        const result = decideJoinOutcome(lobbyGame, 'stranger', []);
+        const result = decideJoinOutcome(lobbyGame, 'stranger');
 
         expect(result).toEqual({ type: 'REJECT', message: 'Game not found' });
     });
 
-    it('rejects when the user is already connected from another client', () => {
-        const result = decideJoinOutcome(lobbyGame, 'player-1', ['player-1']);
+    it('lets a player join', () => {
+        const result = decideJoinOutcome(lobbyGame, 'player-1');
 
-        expect(result).toEqual({
-            type: 'REJECT',
-            message: 'Already connected to this game',
-        });
+        expect(result).toEqual({ type: 'JOIN' });
+    });
+});
+
+describe('shouldStartGame', () => {
+    const lobbyGame = {
+        status: 'LOBBY' as const,
+        players: [{ userId: 'player-1' }, { userId: 'player-2' }],
+    };
+
+    it('starts a LOBBY game when both players are in the room', () => {
+        const result = shouldStartGame(lobbyGame, ['player-1', 'player-2']);
+
+        expect(result).toBe(true);
     });
 
-    it('reveals the secret card when the game is ACTIVE', () => {
-        const activeGame = {
-            status: 'ACTIVE' as const,
-            players: [
-                { userId: 'player-1', secretCardId: 'card-1' },
-                { userId: 'player-2', secretCardId: 'card-2' },
-            ],
+    it('starts when one player has several sockets in the room', () => {
+        const result = shouldStartGame(lobbyGame, [
+            'player-1',
+            'player-1',
+            'player-2',
+        ]);
+
+        expect(result).toBe(true);
+    });
+
+    it('does not start while only one player is in the room', () => {
+        const result = shouldStartGame(lobbyGame, ['player-1', 'player-1']);
+
+        expect(result).toBe(false);
+    });
+
+    it('does not start a game that is already ACTIVE', () => {
+        const activeGame = { ...lobbyGame, status: 'ACTIVE' as const };
+
+        const result = shouldStartGame(activeGame, ['player-1', 'player-2']);
+
+        expect(result).toBe(false);
+    });
+
+    it('does not start a game without exactly two players', () => {
+        const crowdedGame = {
+            ...lobbyGame,
+            players: [...lobbyGame.players, { userId: 'player-3' }],
         };
 
-        const result = decideJoinOutcome(activeGame, 'player-1', []);
+        const result = shouldStartGame(crowdedGame, [
+            'player-1',
+            'player-2',
+            'player-3',
+        ]);
 
-        expect(result).toEqual({ type: 'REVEAL_CARD', cardId: 'card-1' });
-    });
-
-    it('waits when the joining player is the only one in the room', () => {
-        const result = decideJoinOutcome(lobbyGame, 'player-1', []);
-
-        expect(result).toEqual({ type: 'WAIT' });
-    });
-
-    it('starts when a second unique player joins a LOBBY game', () => {
-        const result = decideJoinOutcome(lobbyGame, 'player-2', ['player-1']);
-
-        expect(result).toEqual({ type: 'START' });
+        expect(result).toBe(false);
     });
 });
 

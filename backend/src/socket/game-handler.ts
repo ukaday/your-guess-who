@@ -1,29 +1,24 @@
-import type {
-    PrismaClient,
-    Card,
-    GamePlayer,
-} from '../generated/prisma/client.js';
+import type { PrismaClient, GamePlayer } from '../generated/prisma/client.js';
 import type {
     GameJoinPayload,
     GameGuessPayload,
 } from '@your-guess-who/contract';
-import type {
-    GameSocket,
-    GameServer,
-    GameRemoteSocket,
-} from '../types/socket.js';
+import type { GameSocket, GameServer } from '../types/socket.js';
 import {
-    selectSecretCards,
-    pickFirstPlayer,
     decideJoinOutcome,
+    shouldStartGame,
     decideEndTurnOutcome,
     decideGuessOutcome,
 } from '../services/game-logic.js';
-import {
-    toGameStartedPayload,
-    type GameWithPlayersAndDeck,
-} from '../payloads/game-started-payload.js';
+import { startGame } from '../services/games.js';
+import type { GameWithPlayersAndDeck } from '../payloads/game-started-payload.js';
+import { toGameView } from '../payloads/game-view.js';
 import { createHandlerGuard, type ErrorLogger } from './guard-handler.js';
+
+const GAME_WITH_PLAYERS_AND_DECK = {
+    players: true,
+    deck: { include: { cards: true } },
+} as const;
 
 export function registerGameHandlers(
     io: GameServer,
@@ -56,10 +51,7 @@ async function onGameJoin(
     prisma: PrismaClient,
     payload: GameJoinPayload,
 ) {
-    const game = await prisma.game.findUnique({
-        where: { id: payload.gameId },
-        include: { players: true, deck: { include: { cards: true } } },
-    });
+    const game = await findGameWithPlayersAndDeck(prisma, payload.gameId);
 
     if (!game) {
         socket.emit('game:error', { message: 'Game not found' });
@@ -67,11 +59,7 @@ async function onGameJoin(
         return;
     }
 
-    const roomName = `game:${game.id}`;
-    const socketsInRoom = await io.in(roomName).fetchSockets();
-    const userIdsInRoom = socketsInRoom.map((s) => s.data.userId);
-
-    const outcome = decideJoinOutcome(game, socket.data.userId, userIdsInRoom);
+    const outcome = decideJoinOutcome(game, socket.data.userId);
 
     if (outcome.type === 'REJECT') {
         socket.emit('game:error', { message: outcome.message });
@@ -79,83 +67,55 @@ async function onGameJoin(
         return;
     }
 
+    const roomName = `game:${game.id}`;
+
     await socket.join(roomName);
     socket.data.gameId = game.id;
+    socket.emit('game:state', toGameView(game, socket.data.userId));
 
-    if (outcome.type === 'REVEAL_CARD') {
-        socket.emit('game:your-card', { cardId: outcome.cardId });
+    if (game.status === 'ACTIVE') {
         socket.to(roomName).emit('game:opponent-reconnected');
-
-        return;
     }
 
-    if (outcome.type === 'WAIT') {
-        return;
-    }
-
-    await startGame(io, prisma, game, roomName);
+    await tryStartGame(io, prisma, game, roomName);
 }
 
-async function startGame(
+async function tryStartGame(
     io: GameServer,
     prisma: PrismaClient,
     game: GameWithPlayersAndDeck,
     roomName: string,
 ) {
-    const [card1, card2] = selectSecretCards(game.deck.cards);
-    const playerIds = game.players.map((p) => p.userId);
-    const firstPlayerId = pickFirstPlayer(playerIds);
-
-    await activateGame(prisma, game.id, firstPlayerId, playerIds, card1, card2);
-
-    io.to(roomName).emit(
-        'game:started',
-        toGameStartedPayload({
-            ...game,
-            status: 'ACTIVE',
-            activePlayerId: firstPlayerId,
-        }),
-    );
-
     const socketsInRoom = await io.in(roomName).fetchSockets();
+    const userIdsInRoom = socketsInRoom.map((s) => s.data.userId);
 
-    emitSecretCards(socketsInRoom, playerIds, card1, card2);
+    if (!shouldStartGame(game, userIdsInRoom)) {
+        return;
+    }
+
+    const started = await startGame(prisma, game);
+
+    if (!started) {
+        return;
+    }
+
+    await emitStateToRoom(io, prisma, game.id, roomName);
 }
 
-async function activateGame(
+async function emitStateToRoom(
+    io: GameServer,
     prisma: PrismaClient,
     gameId: string,
-    firstPlayerId: string,
-    playerIds: string[],
-    card1: Card,
-    card2: Card,
+    roomName: string,
 ) {
-    await prisma.game.update({
+    const game = await prisma.game.findUniqueOrThrow({
         where: { id: gameId },
-        data: { status: 'ACTIVE', activePlayerId: firstPlayerId },
+        include: GAME_WITH_PLAYERS_AND_DECK,
     });
+    const socketsInRoom = await io.in(roomName).fetchSockets();
 
-    await prisma.gamePlayer.update({
-        where: { gameId_userId: { gameId, userId: playerIds[0]! } },
-        data: { secretCardId: card1.id },
-    });
-
-    await prisma.gamePlayer.update({
-        where: { gameId_userId: { gameId, userId: playerIds[1]! } },
-        data: { secretCardId: card2.id },
-    });
-}
-
-function emitSecretCards(
-    socketsInRoom: GameRemoteSocket[],
-    playerIds: string[],
-    card1: Card,
-    card2: Card,
-) {
     socketsInRoom.forEach((s) => {
-        const cardId = s.data.userId === playerIds[0] ? card1.id : card2.id;
-
-        s.emit('game:your-card', { cardId });
+        s.emit('game:state', toGameView(game, s.data.userId));
     });
 }
 
@@ -283,4 +243,11 @@ function onSocketDisconnect(socket: GameSocket) {
     }
 
     socket.to(`game:${gameId}`).emit('game:opponent-disconnected');
+}
+
+function findGameWithPlayersAndDeck(prisma: PrismaClient, gameId: string) {
+    return prisma.game.findUnique({
+        where: { id: gameId },
+        include: GAME_WITH_PLAYERS_AND_DECK,
+    });
 }

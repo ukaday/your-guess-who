@@ -1,4 +1,4 @@
-import type { RemoteSocket, Server, Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 import type { ClientEvents, ServerEvents } from '@your-guess-who/contract';
 
 export type SocketData = { userId: string; gameId?: string };
@@ -18,5 +18,3 @@ export type GameSocket = Socket<
     EmptyEvents,
     SocketData
 >;
-
-export type GameRemoteSocket = RemoteSocket<ServerEvents, SocketData>;

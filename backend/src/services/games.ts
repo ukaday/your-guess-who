@@ -1,10 +1,12 @@
-import type { PrismaClient } from '../generated/prisma/client.js';
+import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import { randomUUID } from 'crypto';
 import { toGameView } from '../payloads/game-view.js';
 import {
     toCreatedGameView,
     toJoinedGameView,
 } from '../payloads/lobby-payloads.js';
+import type { GameWithPlayersAndDeck } from '../payloads/game-started-payload.js';
+import { pickFirstPlayer, selectSecretCards } from './game-logic.js';
 
 const INVITE_CODE_LENGTH = 6;
 
@@ -72,6 +74,30 @@ export const getGame = async (
     return toGameView(game, userId);
 };
 
+export const startGame = async (
+    prisma: PrismaClient,
+    game: GameWithPlayersAndDeck,
+): Promise<boolean> => {
+    const secretCards = selectSecretCards(game.deck.cards);
+    const playerIds = game.players.map((player) => player.userId);
+    const firstPlayerId = pickFirstPlayer(playerIds);
+
+    return prisma.$transaction(async (tx) => {
+        const { count } = await tx.game.updateMany({
+            where: { id: game.id, status: 'LOBBY' },
+            data: { status: 'ACTIVE', activePlayerId: firstPlayerId },
+        });
+
+        if (count === 0) return false;
+
+        for (const [index, userId] of playerIds.entries()) {
+            await dealSecretCard(tx, game.id, userId, secretCards[index]!.id);
+        }
+
+        return true;
+    });
+};
+
 export const createGameService = (prisma: PrismaClient) => ({
     createGame: (userId: string, deckId: string) =>
         createGame(prisma, userId, deckId),
@@ -80,3 +106,14 @@ export const createGameService = (prisma: PrismaClient) => ({
     getGame: (userId: string, gameId: string) =>
         getGame(prisma, userId, gameId),
 });
+
+const dealSecretCard = (
+    tx: Prisma.TransactionClient,
+    gameId: string,
+    userId: string,
+    secretCardId: string,
+) =>
+    tx.gamePlayer.update({
+        where: { gameId_userId: { gameId, userId } },
+        data: { secretCardId },
+    });

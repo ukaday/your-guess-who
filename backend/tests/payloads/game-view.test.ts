@@ -84,6 +84,19 @@ describe('toGameView', function () {
                 ],
             },
             yourSecretCardId: 'card-1',
+            winnerId: null,
         });
+    });
+
+    it('carries the winner of a FINISHED game', function () {
+        const game: GameWithPlayersAndDeck = {
+            ...makeActiveGame(),
+            status: 'FINISHED',
+            winnerId: 'user-2',
+        };
+
+        const view = toGameView(game, 'user-1');
+
+        expect(view.winnerId).toBe('user-2');
     });
 });
