@@ -45,7 +45,7 @@ export class BackendStack extends cdk.Stack {
     }
 
     get serviceEndpoint(): string {
-        return this.service.attrEndpoint;
+        return cdk.Fn.select(2, cdk.Fn.split('/', this.service.attrEndpoint));
     }
 
     private importRepository(): ecr.IRepository {

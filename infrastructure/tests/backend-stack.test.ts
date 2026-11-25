@@ -232,9 +232,19 @@ describe('BackendStack', function () {
         Template.fromStack(makeStack()).resourceCountIs('AWS::ECS::Cluster', 1);
     });
 
-    it('outputs the service endpoint for the CloudFront origin', function () {
+    it('outputs the service endpoint as a bare host for the CloudFront origin, ECS returns it with an https:// scheme', function () {
         Template.fromStack(makeStack()).hasOutput('*', {
-            Value: { 'Fn::GetAtt': Match.arrayWith(['Endpoint']) },
+            Value: {
+                'Fn::Select': [
+                    2,
+                    {
+                        'Fn::Split': [
+                            '/',
+                            { 'Fn::GetAtt': Match.arrayWith(['Endpoint']) },
+                        ],
+                    },
+                ],
+            },
         });
     });
 });

@@ -59,6 +59,7 @@ export class CicdStack extends cdk.Stack {
                         Effect: 'Allow',
                         Action: [
                             'ecr:BatchCheckLayerAvailability',
+                            'ecr:BatchGetImage',
                             'ecr:PutImage',
                             'ecr:InitiateLayerUpload',
                             'ecr:UploadLayerPart',

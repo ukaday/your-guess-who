@@ -110,13 +110,30 @@ describe('CicdStack', function () {
         );
     });
 
-    it('grants no ECR pull permissions, the base image comes from Docker Hub', function () {
+    it('lets docker push read back the manifest it pushed, scoped to the backend repository', function () {
+        Template.fromStack(makeStack()).hasResourceProperties(
+            'AWS::IAM::Policy',
+            {
+                PolicyDocument: Match.objectLike({
+                    Statement: Match.arrayWith([
+                        Match.objectLike({
+                            Sid: 'EcrPushBackendImage',
+                            Action: Match.arrayWith(['ecr:BatchGetImage']),
+                            Resource:
+                                'arn:aws:ecr:us-east-2:111111111111:repository/your-guess-who-backend',
+                        }),
+                    ]),
+                }),
+            },
+        );
+    });
+
+    it('grants no ECR layer downloads, the base image comes from Docker Hub', function () {
         const rendered = JSON.stringify(
             Template.fromStack(makeStack()).toJSON(),
         );
 
         expect(rendered).not.toContain('ecr:GetDownloadUrlForLayer');
-        expect(rendered).not.toContain('ecr:BatchGetImage');
     });
 
     it('attaches no administrator policy directly to the deploy role', function () {
