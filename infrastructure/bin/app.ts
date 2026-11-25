@@ -4,7 +4,7 @@ import { AuthStack } from '../lib/auth-stack.js';
 import { NetworkStack } from '../lib/network-stack.js';
 import { DatabaseStack } from '../lib/database-stack.js';
 import { StorageStack } from '../lib/storage-stack.js';
-import { BackendStack, PINNED_SERVICE_ENDPOINT } from '../lib/backend-stack.js';
+import { BackendStack } from '../lib/backend-stack.js';
 import { FrontendStack } from '../lib/frontend-stack.js';
 import { CicdStack } from '../lib/cicd-stack.js';
 import { BudgetStack } from '../lib/budget-stack.js';
@@ -31,7 +31,7 @@ const storage = new StorageStack(app, 'StorageStack', {
     localDevOrigin,
 });
 
-new BackendStack(app, 'BackendStack', {
+const backend = new BackendStack(app, 'BackendStack', {
     env,
     vpc: network.vpc,
     publicSubnetIds: network.publicSubnetIds,
@@ -76,7 +76,7 @@ const frontendSources = [
 
 new FrontendStack(app, 'FrontendStack', {
     env,
-    apiEndpoint: PINNED_SERVICE_ENDPOINT,
+    apiEndpoint: backend.serviceEndpoint,
     frontendSources,
 });
 
