@@ -8,6 +8,12 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import type { Construct } from 'constructs';
 
+// Temporary: the service endpoint as FrontendStack imports it today. ECS now
+// returns the attribute with an https:// scheme, and CloudFormation will not
+// change an export another stack imports. Remove this, the pinned output and
+// its use in bin/app.ts once FrontendStack has deployed without the import.
+export const PINNED_SERVICE_ENDPOINT = 'yo-b9e7c253dff3447c96664f1cd4d61f5a.ecs.us-east-2.on.aws';
+
 export interface BackendStackProps extends cdk.StackProps {
     vpc: ec2.IVpc;
     publicSubnetIds: string[];
@@ -42,6 +48,7 @@ export class BackendStack extends cdk.Stack {
         this.service = this.createService(props);
         this.allowTasksToReachDatabase(props.dbInstance);
         this.createOutputs();
+        this.retainServiceEndpointExportUntilFrontendStackStopsImportingIt();
     }
 
     get serviceEndpoint(): string {
@@ -184,6 +191,13 @@ export class BackendStack extends cdk.Stack {
     private createOutputs(): void {
         new cdk.CfnOutput(this, 'ServiceEndpoint', {
             value: this.serviceEndpoint,
+        });
+    }
+
+    private retainServiceEndpointExportUntilFrontendStackStopsImportingIt(): void {
+        new cdk.CfnOutput(this, 'ExportsOutputFnGetAttServiceEndpointD579C723', {
+            value: PINNED_SERVICE_ENDPOINT,
+            exportName: 'BackendStack:ExportsOutputFnGetAttServiceEndpointD579C723',
         });
     }
 }
